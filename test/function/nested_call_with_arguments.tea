@@ -1,0 +1,16 @@
+function returnArg(arg) 
+{
+    return arg
+}
+
+function returnFunCallWithArg(func, arg) 
+{
+    return returnArg(func)(arg)
+}
+
+function printArg(arg) 
+{
+    print(arg)
+}
+
+returnFunCallWithArg(printArg, "hello world") // expect: hello world
