@@ -341,7 +341,7 @@ static void list_sort(TeaState* T)
 
     int len = tea_len(T, 0);
 
-    // Check if all the list elements are indeed numbers.
+    // Check if all the list elements are indeed numbers
     for(int i = 0; i < len; i++) 
     {
         tea_get_item(T, 0, i);
