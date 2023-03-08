@@ -23,7 +23,7 @@ static TeaChunk* current_chunk(TeaCompiler* compiler)
 
 static void error_at(TeaCompiler* compiler, TeaToken* token, const char* message)
 {
-    if(compiler->parser->panic_mode)
+    if(compiler->parser->panic_mode || compiler->parser->had_error)
         return;
     compiler->parser->panic_mode = true;
     fprintf(stderr, "File %s, [line %d] Error", compiler->parser->module->name->chars, token->line);
@@ -2013,7 +2013,7 @@ static int get_arg_count(uint8_t* code, const TeaValueArray constants, int ip)
         case OP_SUBSCRIPT:
         case OP_SUBSCRIPT_STORE:
         case OP_SUBSCRIPT_PUSH:
-        case OP_EXTENSION_METHOD:
+        case OP_INHERIT:
         case OP_SLICE:
         case OP_POP:
         case OP_POP_REPL:
@@ -2049,20 +2049,22 @@ static int get_arg_count(uint8_t* code, const TeaValueArray constants, int ip)
         case OP_GET_LOCAL:
         case OP_SET_LOCAL:
         case OP_GET_GLOBAL:
+        case OP_SET_GLOBAL:
         case OP_GET_MODULE:
+        case OP_SET_MODULE:
         case OP_DEFINE_GLOBAL:
         case OP_DEFINE_MODULE:
-        case OP_SET_GLOBAL:
-        case OP_SET_MODULE:
         case OP_GET_UPVALUE:
         case OP_SET_UPVALUE:
         case OP_GET_PROPERTY:
         case OP_GET_PROPERTY_NO_POP:
         case OP_SET_PROPERTY:
         case OP_GET_SUPER:
+        case OP_CLASS:
         case OP_SET_CLASS_VAR:
         case OP_CALL:
         case OP_METHOD:
+        case OP_EXTENSION_METHOD:
         case OP_IMPORT:
         case OP_LIST:
         case OP_UNPACK_LIST:
@@ -2081,8 +2083,6 @@ static int get_arg_count(uint8_t* code, const TeaValueArray constants, int ip)
         case OP_LOOP:
         case OP_INVOKE:
         case OP_SUPER:
-        case OP_CLASS:
-        case OP_INHERIT:
         case OP_IMPORT_NATIVE:
             return 2;
         case OP_IMPORT_NATIVE_VARIABLE: 
@@ -2273,7 +2273,14 @@ static void break_statement(TeaCompiler* compiler)
     // Discard any locals created inside the loop
     for(int i = compiler->local_count - 1; i >= 0 && compiler->locals[i].depth > compiler->loop->scope_depth; i--)
     {
-        emit_op(compiler, OP_POP);
+        if(compiler->locals[i].is_captured)
+        {
+            emit_op(compiler, OP_CLOSE_UPVALUE);
+        }
+        else
+        {
+            emit_op(compiler, OP_POP);
+        }
     }
 
     emit_jump(compiler, OP_END);
@@ -2290,7 +2297,14 @@ static void continue_statement(TeaCompiler* compiler)
     // Discard any locals created inside the loop
     for(int i = compiler->local_count - 1; i >= 0 && compiler->locals[i].depth > compiler->loop->scope_depth; i--)
     {
-        emit_op(compiler, OP_POP);
+        if(compiler->locals[i].is_captured)
+        {
+            emit_op(compiler, OP_CLOSE_UPVALUE);
+        }
+        else
+        {
+            emit_op(compiler, OP_POP);
+        }
     }
 
     // Jump to the top of the innermost loop
