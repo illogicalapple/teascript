@@ -52,7 +52,7 @@ void tea_runtime_error(TeaState* T, const char* format, ...)
         TeaCallFrame* frame = &T->thread->frames[i];
         TeaObjectFunction* function = frame->closure->function;
         size_t instruction = frame->ip - function->chunk.code - 1;
-        fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
+        fprintf(stderr, "[line %d] in ", tea_getline(&function->chunk, instruction));
         if(function->name == NULL)
         {
             fprintf(stderr, "script\n");

@@ -173,7 +173,7 @@ static int jump_instruction(const char* name, int sign, TeaChunk* chunk, int off
 int tea_disassemble_instruction(TeaState* T, TeaChunk* chunk, int offset)
 {
     printf("%04d ", offset);
-    if(offset > 0 && chunk->lines[offset] == chunk->lines[offset - 1])
+    if(offset > 0 && tea_getline(chunk, offset - 1))
     {
         printf("   | ");
     }
