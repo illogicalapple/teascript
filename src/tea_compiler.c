@@ -346,6 +346,11 @@ static int resolve_local(TeaCompiler* compiler, TeaToken* name)
         TeaLocal* local = &compiler->locals[i];
         if(identifiers_equal(name, &local->name))
         {
+            if(local->depth == -1)
+            {
+                break;
+            }
+                
             return i;
         }
     }
@@ -402,19 +407,26 @@ static int resolve_upvalue(TeaCompiler* compiler, TeaToken* name)
     return -1;
 }
 
-static int add_local(TeaCompiler* compiler, TeaToken name)
+static void add_local(TeaCompiler* compiler, TeaToken name)
 {
     if(compiler->local_count == UINT8_COUNT)
     {
         error(compiler, "Too many local variables in function");
-        return -1;
     }
 
     TeaLocal* local = &compiler->locals[compiler->local_count++];
     local->name = name;
-    local->depth = compiler->scope_depth;
+    local->depth = -1;
     local->is_captured = false;
     local->constant = false;
+}
+
+static int add_init_local(TeaCompiler* compiler, TeaToken name)
+{
+    add_local(compiler, name);
+    
+    TeaLocal* local = &compiler->locals[compiler->local_count - 1];
+    local->depth = compiler->scope_depth;
 
     return compiler->local_count - 1;
 }
@@ -2152,10 +2164,10 @@ static void for_in_statement(TeaCompiler* compiler, TeaToken var)
     }
 
     expression(compiler);
-    int seq_slot = add_local(compiler, synthetic_token("seq "));
+    int seq_slot = add_init_local(compiler, synthetic_token("seq "));
 
     null(compiler, false);
-    int iter_slot = add_local(compiler, synthetic_token("iter "));
+    int iter_slot = add_init_local(compiler, synthetic_token("iter "));
 
     consume(compiler, TOKEN_RIGHT_PAREN, "Expect ')' after loop expression");
 
@@ -2177,7 +2189,7 @@ static void for_in_statement(TeaCompiler* compiler, TeaToken var)
 
     begin_scope(compiler);
 
-    int var_slot = add_local(compiler, var);
+    int var_slot = add_init_local(compiler, var);
     emit_argued(compiler, OP_SET_LOCAL, var_slot);
 
     compiler->loop->body = compiler->function->chunk.count;
