@@ -1895,6 +1895,7 @@ static void var_declaration(TeaCompiler* compiler, bool constant)
                 }
                 while(match(compiler, TOKEN_COMMA));
             }
+            match(compiler, TOKEN_SEMICOLON);
 
             return;
         }
@@ -1955,6 +1956,7 @@ static void var_declaration(TeaCompiler* compiler, bool constant)
             define_variable(compiler, 0, constant);
         }
     }
+    match(compiler, TOKEN_SEMICOLON);
 }
 
 static void enum_declaration(TeaCompiler* compiler)
@@ -1999,6 +2001,7 @@ static void enum_declaration(TeaCompiler* compiler)
     emit_argued(compiler, OP_ENUM, item_count);
 
     define_variable(compiler, global, false);
+    match(compiler, TOKEN_SEMICOLON);
 }
 
 static void expression_statement(TeaCompiler* compiler)
@@ -2707,6 +2710,7 @@ static void multiple_assignment(TeaCompiler* compiler)
     {
         error(compiler, "Not enough values to assign to");
     }
+    match(compiler, TOKEN_SEMICOLON);
     
     finish:
     for(int i = var_count - 1; i >= 0; i--)
@@ -2808,11 +2812,7 @@ static void declaration(TeaCompiler* compiler)
 
 static void statement(TeaCompiler* compiler)
 {
-    if(match(compiler, TOKEN_SEMICOLON))
-    {
-        advance(compiler);
-    }
-    else if(match(compiler, TOKEN_FOR))
+    if(match(compiler, TOKEN_FOR))
     {
         for_statement(compiler);
     }
