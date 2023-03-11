@@ -2004,6 +2004,7 @@ static void enum_declaration(TeaCompiler* compiler)
 static void expression_statement(TeaCompiler* compiler)
 {
     expression(compiler);
+    match(compiler, TOKEN_SEMICOLON);
     if(compiler->parser->T->repl && compiler->type == TYPE_SCRIPT)
     {
         emit_op(compiler, OP_POP_REPL);
@@ -2412,7 +2413,7 @@ static void return_statement(TeaCompiler* compiler)
         error(compiler, "Can't return from top-level code");
     }
 
-    if(check(compiler, TOKEN_RIGHT_BRACE))
+    if(check(compiler, TOKEN_RIGHT_BRACE) || match(compiler, TOKEN_SEMICOLON))
     {
         emit_return(compiler);
     }
@@ -2424,7 +2425,7 @@ static void return_statement(TeaCompiler* compiler)
         }
 
         expression(compiler);
-
+        match(compiler, TOKEN_SEMICOLON);
         emit_op(compiler, OP_RETURN);
     }
 }
@@ -2807,7 +2808,11 @@ static void declaration(TeaCompiler* compiler)
 
 static void statement(TeaCompiler* compiler)
 {
-    if(match(compiler, TOKEN_FOR))
+    if(match(compiler, TOKEN_SEMICOLON))
+    {
+        advance(compiler);
+    }
+    else if(match(compiler, TOKEN_FOR))
     {
         for_statement(compiler);
     }

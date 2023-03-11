@@ -108,7 +108,6 @@ static bool skip_whitespace(TeaScanner* scanner)
         switch(c)
         {
             case ' ':
-            case ';':
             case '\r':
             case '\t':
             {
