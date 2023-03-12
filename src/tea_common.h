@@ -9,6 +9,8 @@
 #include <stdint.h>
 
 #define TEA_NAN_TAGGING
+
+#define TEA_DEBUG_TOKENS
 #define TEA_DEBUG_PRINT_CODE
 #define TEA_DEBUG_TRACE_EXECUTION
 #define TEA_DEBUG_TRACE_MEMORY
@@ -25,6 +27,7 @@
 
 #endif
 
+#undef TEA_DEBUG_TOKENS
 #undef TEA_DEBUG_PRINT_CODE
 #undef TEA_DEBUG_TRACE_EXECUTION
 #undef TEA_DEBUG_TRACE_MEMORY

@@ -2868,6 +2868,30 @@ static void statement(TeaCompiler* compiler)
     }
 }
 
+#ifdef TEA_DEBUG_TOKENS
+static void tea_scan_all(TeaScanner* scanner, const char* source)
+{
+    int line = -1;
+    while(true)
+    {
+        TeaToken token = tea_scan_token(scanner);
+        if(token.line != line)
+        {
+            printf("%4d ", token.line);
+            line = token.line;
+        } 
+        else
+        {
+            printf("   | ");
+        }
+        printf("%2d '%.*s'\n", token.type, token.length, token.start);
+
+        if(token.type == TOKEN_EOF) break;
+    }
+    tea_init_scanner(scanner->T, scanner, source);
+}
+#endif
+
 TeaObjectFunction* tea_compile(TeaState* T, TeaObjectModule* module, const char* source)
 {
     TeaParser parser;
@@ -2878,6 +2902,11 @@ TeaObjectFunction* tea_compile(TeaState* T, TeaObjectModule* module, const char*
 
     TeaScanner scanner;
     tea_init_scanner(T, &scanner, source);
+
+#ifdef TEA_DEBUG_TOKENS
+    tea_scan_all(&scanner, source);
+#endif
+
     parser.scanner = scanner;
 
     TeaCompiler compiler;
