@@ -1,15 +1,16 @@
 class Foo 
 {
-    methodOnFoo() { print("foo") }
+    foo() { print("foo") }
     override() { print("foo") }
 }
 
-class Bar < Foo {
-    methodOnBar() { print("bar") }
+class Bar : Foo
+{
+    bar() { print("bar") }
     override() { print("bar") }
 }
 
 var bar = Bar()
-bar.methodOnFoo() // expect: foo
-bar.methodOnBar() // expect: bar
+bar.foo() // expect: foo
+bar.bar() // expect: bar
 bar.override() // expect: bar

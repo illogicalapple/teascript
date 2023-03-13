@@ -1,6 +1,6 @@
 class Foo 
 {
-    sayName(a) 
+    say(a) 
     {
         print(this.name)
         print(a)
@@ -14,7 +14,7 @@ var foo2 = Foo()
 foo2.name = "foo2"
 
 // Store the method reference on another object.
-foo2.fn = foo1.sayName
+foo2.fn = foo1.say
 // Still retains original receiver.
 foo2.fn(1)
 // expect: foo1

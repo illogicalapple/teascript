@@ -1,17 +1,19 @@
 var i = 0
-while (i <= 2) {
-  i = i + 1
+while(i <= 2) 
+{
+    i = i + 1
 
-  print("outer {i}")
-  if (i == 2) continue
+    print("outer {i}")
+    if(i == 2) continue
 
-  var j = 0
-  while (j <= 2) {
-    j = j + 1
-  
-    if(j == 2) continue
-      print("inner {j}")
-  }
+    var j = 0
+    while(j <= 2)
+    {
+        j = j + 1
+      
+        if(j == 2) continue
+            print("inner {j}")
+    }
 }
 
 // expect: outer 1

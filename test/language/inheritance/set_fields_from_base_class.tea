@@ -1,14 +1,15 @@
-class Foo {
+class Foo 
+{
     foo(a, b) 
     {
         this.field1 = a
         this.field2 = b
     }
 
-    fooPrint() 
+    fooprint() 
     {
-        print this.field1
-        print this.field2
+        print(this.field1)
+        print(this.field2)
     }
 }
 
@@ -20,24 +21,24 @@ class Bar : Foo
         this.field2 = b
     }
 
-    barPrint() 
+    barprint() 
     {
-        print this.field1
-        print this.field2
+        print(this.field1)
+        print(this.field2)
     }
 }
 
 var bar = Bar()
 bar.foo("foo 1", "foo 2")
-bar.fooPrint()
+bar.fooprint()
 // expect: foo 1
 // expect: foo 2
 
 bar.bar("bar 1", "bar 2")
-bar.barPrint()
+bar.barprint()
 // expect: bar 1
 // expect: bar 2
 
-bar.fooPrint()
+bar.fooprint()
 // expect: bar 1
 // expect: bar 2

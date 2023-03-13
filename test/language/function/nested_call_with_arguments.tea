@@ -1,16 +1,16 @@
-function returnArg(arg) 
+function f(arg) 
 {
     return arg
 }
 
-function returnFunCallWithArg(func, arg) 
+function g(func, arg) 
 {
-    return returnArg(func)(arg)
+    return f(func)(arg)
 }
 
-function printArg(arg) 
+function printer(arg) 
 {
     print(arg)
 }
 
-returnFunCallWithArg(printArg, "hello world") // expect: hello world
+g(printer, "hello world") // expect: hello world

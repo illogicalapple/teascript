@@ -11,16 +11,14 @@ var closure
 
     {
         var b = "b"
-        function returnA() 
+        closure = function() 
         {
             return a
         }
 
-        closure = returnA
-
         if(false) 
         {
-            function returnB() 
+            function f() 
             {
                 return b
             }

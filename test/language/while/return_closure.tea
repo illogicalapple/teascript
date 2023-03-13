@@ -1,9 +1,9 @@
-function f() {
-    while (true) 
+function f() 
+{
+    while(true) 
     {
         var i = "i"
-        function g() { print(i) }
-        return g
+        return function() { print(i) }
     }
 }
 
