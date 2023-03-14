@@ -2214,7 +2214,8 @@ static void for_statement(TeaCompiler* compiler)
     begin_scope(compiler);
     consume(compiler, TOKEN_LEFT_PAREN, "Expect '(' after 'for'");
 
-    if(match(compiler, TOKEN_VAR))
+    bool constant = false;
+    if(match(compiler, TOKEN_VAR) || (constant = match(compiler, TOKEN_CONST)))
     {
         consume(compiler, TOKEN_NAME, "Expect variable name");
         TeaToken var = compiler->parser->previous;
@@ -2237,7 +2238,7 @@ static void for_statement(TeaCompiler* compiler)
             emit_op(compiler, OP_NULL);
         }
 
-        define_variable(compiler, global, false);
+        define_variable(compiler, global, constant);
         consume(compiler, TOKEN_COMMA, "Expect ',' after loop variable");
     }
     else
