@@ -1457,7 +1457,6 @@ static void begin_function(TeaCompiler* compiler, TeaCompiler* fn_compiler, TeaF
             if(spread)
             {
                 error(fn_compiler, "spread parameter must be last in the parameter list");
-                return;
             }
 
             spread = match(fn_compiler, TOKEN_DOT_DOT_DOT);
@@ -1465,9 +1464,6 @@ static void begin_function(TeaCompiler* compiler, TeaCompiler* fn_compiler, TeaF
 
             TeaToken name = fn_compiler->parser->previous;
             check_parameters(fn_compiler, &name);
-
-            uint8_t constant = parse_variable_at(fn_compiler, name);
-            define_variable(fn_compiler, constant, false);
 
             if(spread)
             {
@@ -1479,7 +1475,6 @@ static void begin_function(TeaCompiler* compiler, TeaCompiler* fn_compiler, TeaF
                 if(spread)
                 {
                     error(fn_compiler, "spread parameter cannot have an optional value");
-                    return;
                 }
                 fn_compiler->function->arity_optional++;
                 optional = true;
@@ -1492,15 +1487,16 @@ static void begin_function(TeaCompiler* compiler, TeaCompiler* fn_compiler, TeaF
                 if(optional)
                 {
                     error(fn_compiler, "Cannot have non-optional parameter after optional");
-                    return;
                 }
             }
 
             if(fn_compiler->function->arity + fn_compiler->function->arity_optional > 255)
             {
                 error(fn_compiler, "Cannot have more than 255 parameters");
-                return;
             }
+
+            uint8_t constant = parse_variable_at(fn_compiler, name);
+            define_variable(fn_compiler, constant, false);
         } 
         while(match(fn_compiler, TOKEN_COMMA));
 
