@@ -299,13 +299,12 @@ static void begin_scope(TeaCompiler* compiler)
     compiler->scope_depth++;
 }
 
-static void end_scope(TeaCompiler* compiler)
+static int discard_locals(TeaCompiler* compiler, int depth)
 {
-    compiler->scope_depth--;
-
-    while(compiler->local_count > 0 && compiler->locals[compiler->local_count - 1].depth > compiler->scope_depth)
+    int local;
+    for(local = compiler->local_count - 1; local >= 0 && compiler->locals[local].depth >= depth; local--)
     {
-        if(compiler->locals[compiler->local_count - 1].is_captured)
+        if(compiler->locals[local].is_captured)
         {
             emit_byte(compiler, OP_CLOSE_UPVALUE);
         }
@@ -313,8 +312,17 @@ static void end_scope(TeaCompiler* compiler)
         {
             emit_byte(compiler, OP_POP);
         }
-        compiler->local_count--;
     }
+
+    return compiler->local_count - local - 1;
+}
+
+static void end_scope(TeaCompiler* compiler)
+{
+    int effect = discard_locals(compiler, compiler->scope_depth);
+    compiler->local_count -= effect;
+    compiler->slot_count -= effect;
+    compiler->scope_depth--;
 }
 
 static void expression(TeaCompiler* compiler);
@@ -390,7 +398,7 @@ static int resolve_upvalue(TeaCompiler* compiler, TeaToken* name)
         return -1;
 
     int local = resolve_local(compiler->enclosing, name);
-    int constant = compiler->enclosing->locals[local].constant;
+    bool constant = compiler->enclosing->locals[local].constant;
     if(local != -1)
     {
         compiler->enclosing->locals[local].is_captured = true;
@@ -421,12 +429,13 @@ static void add_local(TeaCompiler* compiler, TeaToken name)
     local->constant = false;
 }
 
-static int add_init_local(TeaCompiler* compiler, TeaToken name)
+static int add_init_local(TeaCompiler* compiler, TeaToken name, bool constant)
 {
     add_local(compiler, name);
     
     TeaLocal* local = &compiler->locals[compiler->local_count - 1];
     local->depth = compiler->scope_depth;
+    local->constant = constant;
 
     return compiler->local_count - 1;
 }
@@ -1233,7 +1242,7 @@ static void unary(TeaCompiler* compiler, bool can_assign)
 
     parse_precedence(compiler, PREC_UNARY);
 
-    // Emit the operator instruction.
+    // Emit the operator instruction
     switch(operator_type)
     {
         case TOKEN_BANG:
@@ -1252,7 +1261,7 @@ static void unary(TeaCompiler* compiler, bool can_assign)
             break;
         }
         default:
-            return; // Unreachable.
+            return; // Unreachable
     }
 }
 
@@ -2159,7 +2168,7 @@ static void end_loop(TeaCompiler* compiler)
     compiler->loop = compiler->loop->enclosing;
 }
 
-static void for_in_statement(TeaCompiler* compiler, TeaToken var)
+static void for_in_statement(TeaCompiler* compiler, TeaToken var, bool constant)
 {
     if(compiler->local_count + 2 > 256)
     {
@@ -2167,11 +2176,28 @@ static void for_in_statement(TeaCompiler* compiler, TeaToken var)
         return;
     }
 
+    TeaToken variables[255];
+    int var_count = 1;
+    variables[0] = var;
+
+    if(match(compiler, TOKEN_COMMA))
+    {
+        do 
+        {
+            consume(compiler, TOKEN_NAME, "Expect variable name");
+            variables[var_count] = compiler->parser->previous;
+            var_count++;
+        } 
+        while(match(compiler, TOKEN_COMMA));
+    }
+    
+    consume(compiler, TOKEN_IN, "Expect for iterator");
+
     expression(compiler);
-    int seq_slot = add_init_local(compiler, synthetic_token("seq "));
+    int seq_slot = add_init_local(compiler, synthetic_token("seq "), false);
 
     null(compiler, false);
-    int iter_slot = add_init_local(compiler, synthetic_token("iter "));
+    int iter_slot = add_init_local(compiler, synthetic_token("iter "), false);
 
     consume(compiler, TOKEN_RIGHT_PAREN, "Expect ')' after loop expression");
 
@@ -2193,8 +2219,14 @@ static void for_in_statement(TeaCompiler* compiler, TeaToken var)
 
     begin_scope(compiler);
 
-    int var_slot = add_init_local(compiler, var);
-    emit_argued(compiler, OP_SET_LOCAL, var_slot);
+    if(var_count > 1)
+        emit_argued(compiler, OP_UNPACK_LIST, var_count);
+
+    for(int i = 0; i < var_count; i++)
+    {
+        declare_variable(compiler, &variables[i]);
+        define_variable(compiler, 0, constant);
+    }
 
     compiler->loop->body = compiler->function->chunk.count;
     statement(compiler);
@@ -2220,10 +2252,10 @@ static void for_statement(TeaCompiler* compiler)
         consume(compiler, TOKEN_NAME, "Expect variable name");
         TeaToken var = compiler->parser->previous;
 
-        if(match(compiler, TOKEN_IN))
+        if(check(compiler, TOKEN_IN) || check(compiler, TOKEN_COMMA))
         {
             // It's a for in statement
-            for_in_statement(compiler, var);
+            for_in_statement(compiler, var, constant);
             return;
         }
 
@@ -2239,12 +2271,12 @@ static void for_statement(TeaCompiler* compiler)
         }
 
         define_variable(compiler, global, constant);
-        consume(compiler, TOKEN_COMMA, "Expect ',' after loop variable");
+        consume(compiler, TOKEN_SEMICOLON, "Expect ';' after loop variable");
     }
     else
     {
         expression_statement(compiler);
-        consume(compiler, TOKEN_COMMA, "Expect ',' after loop expression");
+        consume(compiler, TOKEN_SEMICOLON, "Expect ';' after loop expression");
     }
 
     TeaLoop loop;
@@ -2253,7 +2285,7 @@ static void for_statement(TeaCompiler* compiler)
     compiler->loop->end = -1;
     
     expression(compiler);
-    consume(compiler, TOKEN_COMMA, "Expect ',' after loop condition");
+    consume(compiler, TOKEN_SEMICOLON, "Expect ';' after loop condition");
 
     compiler->loop->end = emit_jump(compiler, OP_JUMP_IF_FALSE);
     emit_op(compiler, OP_POP); // Condition.
@@ -2288,17 +2320,7 @@ static void break_statement(TeaCompiler* compiler)
     }
 
     // Discard any locals created inside the loop
-    for(int i = compiler->local_count - 1; i >= 0 && compiler->locals[i].depth > compiler->loop->scope_depth; i--)
-    {
-        if(compiler->locals[i].is_captured)
-        {
-            emit_op(compiler, OP_CLOSE_UPVALUE);
-        }
-        else
-        {
-            emit_op(compiler, OP_POP);
-        }
-    }
+    discard_locals(compiler, compiler->loop->scope_depth + 1);
 
     emit_jump(compiler, OP_END);
 }
@@ -2312,17 +2334,7 @@ static void continue_statement(TeaCompiler* compiler)
     }
 
     // Discard any locals created inside the loop
-    for(int i = compiler->local_count - 1; i >= 0 && compiler->locals[i].depth > compiler->loop->scope_depth; i--)
-    {
-        if(compiler->locals[i].is_captured)
-        {
-            emit_op(compiler, OP_CLOSE_UPVALUE);
-        }
-        else
-        {
-            emit_op(compiler, OP_POP);
-        }
-    }
+    discard_locals(compiler, compiler->loop->scope_depth + 1);
 
     // Jump to the top of the innermost loop
     emit_loop(compiler, compiler->loop->start);

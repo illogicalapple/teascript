@@ -168,10 +168,11 @@ static void map_iteratorvalue(TeaState* T)
         tea_error(T, "Invalid map iterator");
     }
 
-    tea_push_map(T);
-    TeaObjectMap* value = AS_MAP(T->slot[T->top - 1]);
-    tea_map_set(T, value, OBJECT_VAL(tea_copy_string(T, "key", 3)), item->key);
-    tea_map_set(T, value, OBJECT_VAL(tea_copy_string(T, "value", 5)), item->value);
+    tea_push_list(T);
+    tea_push_slot(T, item->key);
+    tea_add_item(T, 2);
+    tea_push_slot(T, item->value);
+    tea_add_item(T, 2);
 }
 
 static const TeaClass map_class[] = {
