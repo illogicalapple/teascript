@@ -289,12 +289,12 @@ TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn)
     push_slot(T, OBJECT_VAL(native));
 }
 
-TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* class)
+TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* klass)
 {
     push_slot(T, OBJECT_VAL(tea_new_class(T, tea_new_string(T, name), NULL)));
-    if(class != NULL)
+    if(klass != NULL)
     {
-        set_class(T, class, T->top - 1);
+        set_class(T, klass, T->top - 1);
     }
 }
 

@@ -226,12 +226,6 @@ typedef struct
     TeaValue* slots;
 } TeaCallFrame;
 
-typedef enum
-{
-    THREAD_ROOT,
-    THREAD_OTHER
-} TeaThreadType;
-
 typedef struct TeaObjectThread
 {
     TeaObject obj;
@@ -245,7 +239,6 @@ typedef struct TeaObjectThread
     int frame_capacity;
     int frame_count;
     TeaObjectUpvalue* open_upvalues;
-    TeaThreadType type;
 } TeaObjectThread;
 
 static inline void tea_append_callframe(TeaState* T, TeaObjectThread* thread, TeaObjectClosure* closure, TeaValue* start)

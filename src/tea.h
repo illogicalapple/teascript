@@ -122,7 +122,7 @@ TEA_API void tea_push_map(TeaState* T);
 TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn);
 TEA_API void tea_push_userdata(TeaState* T, void* data);
 
-TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* class);
+TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* klass);
 TEA_API void tea_create_module(TeaState* T, const char* name, const TeaModule* module);
 TEA_API void* tea_create_userdata(TeaState* T, size_t size);
 

@@ -1082,7 +1082,6 @@ static void repeat(TeaState* T)
 static TeaInterpretResult run_interpreter(TeaState* T, register TeaObjectThread* thread)
 {
     T->thread = thread;
-    T->thread->type = THREAD_ROOT;
 
     register TeaCallFrame* frame;
     register TeaChunk* current_chunk;
