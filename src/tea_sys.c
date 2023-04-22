@@ -55,7 +55,7 @@ static void init_argv(TeaState* T)
     int argc;
     const char** argv = tea_get_argv(T, &argc);
 
-    tea_push_list(T);
+    tea_new_list(T);
 
     for(int i = 1; i < argc; i++)
     {
@@ -67,7 +67,7 @@ static void init_argv(TeaState* T)
 
 static void set_version(TeaState* T)
 {
-    tea_push_map(T);
+    tea_new_map(T);
 
     tea_push_number(T, TEA_VERSION_MAJOR);
     tea_set_key(T, 1, "major");

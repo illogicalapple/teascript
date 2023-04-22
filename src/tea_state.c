@@ -9,18 +9,38 @@
 #include "tea_core.h"
 #include "tea_vm.h"
 
+static void free_state(TeaState* T)
+{
+    free(T);
+}
+
+static void free_stack(TeaState* T)
+{
+    TEA_FREE_ARRAY(T, TeaCallFrame, T->frames, T->frame_capacity);
+    TEA_FREE_ARRAY(T, TeaValue, T->stack, T->stack_capacity);
+}
+
+static void init_stack(TeaState* T)
+{
+    T->stack = TEA_ALLOCATE(T, TeaValue, TEA_MIN_SLOTS);
+    T->stack_capacity = TEA_MIN_SLOTS;
+    T->base = T->top = T->stack;
+    T->frames = TEA_ALLOCATE(T, TeaCallFrame, 8);
+    T->frame_count = 0;
+    T->frame_capacity = 8;
+    T->open_upvalues = NULL;
+}
+
 TEA_API TeaState* tea_open()
 {
     TeaState* T = (TeaState*)malloc(sizeof(*T));
-    if(T == NULL) return T;
-    memset(T, 0, sizeof(TeaState));
+    if(T == NULL) 
+        return T;
     T->objects = NULL;
     T->last_module = NULL;
     T->bytes_allocated = 0;
     T->next_gc = 1024 * 1024;
-    T->slot = T->stack;
-    T->info_count = 0;
-    T->top = 0;
+    init_stack(T);
     T->gray_stack = NULL;
     T->gray_count = 0;
     T->gray_capacity = 0;
@@ -29,39 +49,40 @@ TEA_API TeaState* tea_open()
     T->map_class = NULL;
     T->file_class = NULL;
     T->range_class = NULL;
-    tea_init_table(&T->modules);
-    tea_init_table(&T->globals);
-    tea_init_table(&T->constants);
-    tea_init_table(&T->strings);
-    T->constructor_string = tea_copy_string(T, "constructor", 11);
-    T->repl_string = tea_copy_string(T, "_", 1);
+    teaT_init(&T->modules);
+    teaT_init(&T->globals);
+    teaT_init(&T->constants);
+    teaT_init(&T->strings);
+    T->constructor_string = teaO_copy_string(T, "constructor", 11);
+    T->repl_string = teaO_copy_string(T, "_", 1);
+    T->repl = false;
     tea_open_core(T);
     return T;
 }
 
 TEA_API void tea_close(TeaState* T)
 {
-    if(T->repl)
-    {
-        tea_free_table(T, &T->constants);   
-    }
-
-    tea_free_table(T, &T->modules);
-    tea_free_table(T, &T->globals);
-    tea_free_table(T, &T->constants);
-    tea_free_table(T, &T->strings);
     T->constructor_string = NULL;
     T->repl_string = NULL;
-    tea_free_objects(T);
+    
+    if(T->repl) 
+        teaT_free(T, &T->constants);
 
-#if defined (TEA_DEBUG_TRACE_MEMORY) || defined (TEA_DEBUG_FINAL_MEMORY)
+    teaT_free(T, &T->modules);
+    teaT_free(T, &T->globals);
+    teaT_free(T, &T->constants);
+    teaT_free(T, &T->strings);
+    free_stack(T);
+    teaM_free_objects(T);
+
+#if defined(TEA_DEBUG_TRACE_MEMORY) || defined(TEA_DEBUG_FINAL_MEMORY)
     printf("total bytes lost: %zu\n", T->bytes_allocated);
 #endif
 
-    free(T);
+    free_state(T);
 }
 
-TeaObjectClass* tea_get_class(TeaState* T, TeaValue value)
+TeaObjectClass* teaE_get_class(TeaState* T, TeaValue value)
 {
     if(IS_OBJECT(value))
     {
@@ -72,6 +93,7 @@ TeaObjectClass* tea_get_class(TeaState* T, TeaValue value)
             case OBJ_STRING: return T->string_class;
             case OBJ_RANGE: return T->range_class;
             case OBJ_FILE: return T->file_class;
+            default:;
         }
     }
     return NULL;
@@ -79,30 +101,5 @@ TeaObjectClass* tea_get_class(TeaState* T, TeaValue value)
 
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source)
 {
-    return tea_interpret_module(T, module_name, source);
-}
-
-TEA_API TeaInterpretResult tea_call(TeaState* T, int n)
-{
-    TeaValue func = T->slot[T->top - n - 1];
-
-    TeaStackInfo* info = &T->infos[T->info_count++];
-    info->slot = T->slot; // Save the start of last slot
-    info->top = T->top - n - 1;    // Save top of the last slot
-    
-    T->slot = T->slot - n + T->top;     // Offset slot to new position (first argument of function)
-    T->top = n;
-
-    if(IS_NATIVE(func)) 
-    { 
-        AS_NATIVE(func)->fn(T);
-    }
-
-    TeaValue ret = T->slot[T->top - 1];
-    info = &T->infos[--T->info_count];
-    T->slot = info->slot;     // Offset slot back to last origin
-    T->top = info->top;    // Get last top of origin slot
-
-    T->slot[T->top] = ret;
-    T->top++;
+    return teaV_interpret_module(T, module_name, source);
 }

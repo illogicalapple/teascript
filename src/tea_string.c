@@ -13,7 +13,7 @@
 
 static void string_len(TeaState* T)
 {
-    tea_push_number(T, tea_ustring_length(AS_STRING(T->slot[T->top - 1])));
+    tea_push_number(T, teaU_length(AS_STRING(T->top[-1])));
 }
 
 static void string_constructor(TeaState* T)
@@ -40,7 +40,7 @@ static void string_upper(TeaState* T)
     }
     temp[len] = '\0';
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, len)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, temp, len)));
 }
 
 static void string_lower(TeaState* T)
@@ -58,7 +58,7 @@ static void string_lower(TeaState* T)
     }
     temp[len] = '\0';
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, len)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, temp, len)));
 }
 
 static void rev(char* str, int len)
@@ -71,7 +71,7 @@ static void rev(char* str, int len)
         c = *scanl, *scanl++ = *--scanr, *scanr = c;
 
     // then scan all bytes and reverse each multibyte character
-    for(scanl = scanr = str; c = *scanr++;)
+    for(scanl = scanr = str; (c = *scanr++);)
     {
         if((c & 0x80) == 0) // ASCII char
             scanl = scanr;
@@ -106,7 +106,7 @@ static void string_reverse(TeaState* T)
     char* reversed = TEA_ALLOCATE(T, char, len + 1);
     strcpy(reversed, string);
     rev(reversed, len);
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, reversed, len)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, reversed, len)));
 }
 
 static void string_split(TeaState* T)
@@ -147,7 +147,7 @@ static void string_split(TeaState* T)
 
     char* token;
 
-    tea_push_list(T);
+    tea_new_list(T);
     int list_len = 0;
 
     if(sep_len == 0) 
@@ -229,7 +229,7 @@ static void string_title(TeaState* T)
     }
     temp[len] = '\0';
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, len)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, temp, len)));
 }
 
 static void string_contains(TeaState* T)
@@ -296,7 +296,7 @@ static void string_leftstrip(TeaState* T)
     memcpy(temp, string + count, len - count);
     temp[len - count] = '\0';
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, len - count)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, temp, len - count)));
 }
 
 static void string_rightstrip(TeaState* T)
@@ -327,7 +327,7 @@ static void string_rightstrip(TeaState* T)
     memcpy(temp, string, length + 1);
     temp[length + 1] = '\0';
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, length + 1)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, temp, length + 1)));
 }
 
 static void string_strip(TeaState* T)
@@ -342,29 +342,6 @@ static void string_strip(TeaState* T)
     tea_push_cfunction(T, string_rightstrip);
     tea_push_value(T, 1);
     tea_call(T, 1);
-}
-
-static void string_center(TeaState* T)
-{
-    int count = tea_get_top(T);
-    tea_ensure_min_args(T, count, 2);
-
-    int len, width;
-    const char* string = tea_get_lstring(T, 0, &len);
-    width = tea_check_int(T, 1);
-
-    int padding = width - len;
-    if(padding < 0) padding = 0;
-    int left_padding = padding / 2;
-    int right_padding = padding - left_padding;
-
-    char* temp = TEA_ALLOCATE(T, char, width + 1);
-    for(int i = 0; i < left_padding; i++) temp[i] = ' ';
-    for(int i = 0; i < len; i++) temp[i + left_padding] = string[i];
-    for(int i = left_padding + len; i < width; i++) temp[i] = ' ';
-    temp[width] = '\0';
-
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, temp, width)));
 }
 
 static void string_count(TeaState* T)
@@ -470,7 +447,7 @@ static void string_replace(TeaState* T)
     }
     strcpy(q, string);
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, result, result_size)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, result, result_size)));
 }
 
 static void string_iterate(TeaState* T)
@@ -520,7 +497,7 @@ static void string_iteratorvalue(TeaState* T)
 
 	int index = tea_check_number(T, 1);
 
-    tea_push_slot(T, OBJECT_VAL(tea_ustring_code_point_at(T, AS_STRING(T->slot[0]), index)));
+    tea_push_slot(T, OBJECT_VAL(teaU_code_point_at(T, AS_STRING(T->top[-1]), index)));
 }
 
 static const TeaClass string_class[] = {
@@ -537,7 +514,6 @@ static const TeaClass string_class[] = {
     { "leftstrip", "method", string_leftstrip },
     { "rightstrip", "method", string_rightstrip },
     { "strip", "method", string_strip },
-    { "center", "method", string_center },
     { "count", "method", string_count },
     { "find", "method", string_find },
     { "replace", "method", string_replace },
@@ -549,6 +525,7 @@ static const TeaClass string_class[] = {
 void tea_open_string(TeaState* T)
 {
     tea_create_class(T, TEA_STRING_CLASS, string_class);
-    T->string_class = AS_CLASS(T->slot[T->top - 1]);
+    T->string_class = AS_CLASS(T->top[-1]);
     tea_set_global(T, TEA_STRING_CLASS);
+    tea_push_null(T);
 }

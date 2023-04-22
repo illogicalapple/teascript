@@ -111,16 +111,16 @@ TEA_API void tea_push_value(TeaState* T, int index);
 TEA_API void tea_push_null(TeaState* T);
 TEA_API void tea_push_bool(TeaState* T, int b);
 TEA_API void tea_push_number(TeaState* T, double n);
-#define tea_push_int(T, n) tea_push_number(T, (double)(n))
 TEA_API const char* tea_push_lstring(TeaState* T, const char* s, int len);
 TEA_API const char* tea_push_string(TeaState* T, const char* s);
 TEA_API const char* tea_push_fstring(TeaState* T, const char* fmt, ...);
 
 TEA_API void tea_push_range(TeaState* T, double start, double end, double step);
-TEA_API void tea_push_list(TeaState* T);
-TEA_API void tea_push_map(TeaState* T);
 TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn);
 TEA_API void tea_push_userdata(TeaState* T, void* data);
+
+TEA_API void tea_new_list(TeaState* T);
+TEA_API void tea_new_map(TeaState* T);
 
 TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* klass);
 TEA_API void tea_create_module(TeaState* T, const char* name, const TeaModule* module);
@@ -145,6 +145,8 @@ TEA_API void tea_set_funcs(TeaState* T, const TeaReg* reg);
 TEA_API void tea_get_variable(TeaState* T, const char* module, const char* name);
 TEA_API void tea_set_variable(TeaState* T, const char* module, const char* name);
 TEA_API int tea_has_module(TeaState* T, const char* module, const char* name);
+
+TEA_API int tea_check_type(TeaState* T, int index, int type);
 
 TEA_API int tea_check_bool(TeaState* T, int index);
 TEA_API void tea_check_range(TeaState* T, int index, double* start, double* end, double* step);
@@ -183,6 +185,7 @@ TEA_API void tea_error(TeaState* T, const char* fmt, ...);
 #define tea_is_string(T, n) (tea_type(T, (n)) == TEA_TYPE_STRING)
 #define tea_is_list(T, n) (tea_type(T, (n)) == TEA_TYPE_LIST)
 #define tea_is_map(T, n) (tea_type(T, (n)) == TEA_TYPE_MAP)
+#define tea_is_function(T, n) (tea_type(T, (n)) == TEA_TYPE_FUNCTION)
 #define tea_is_file(T, n) (tea_type(T, (n)) == TEA_TYPE_FILE)
 
 #endif

@@ -125,7 +125,7 @@ static void init_env(TeaState* T)
     // This is not a portable feature on all the C compilers
     extern char** environ;
 
-    tea_push_list(T);
+    tea_new_list(T);
 
     for(char** current = environ; *current; current++)
     {

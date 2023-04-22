@@ -16,7 +16,7 @@
 
 static TeaObjectFile* get_file(TeaState* T)
 {
-    TeaObjectFile* file = AS_FILE(T->slot[0]);
+    TeaObjectFile* file = AS_FILE(T->top[-1]);
     if(!file->is_open)
     {
         tea_error(T, "Attempt to use a closed file");
@@ -96,7 +96,7 @@ static void file_read(TeaState* T)
         tea_error(T, "File is not readable");
     }
 
-    int current_size = BUFFER_SIZE;
+    size_t current_size = BUFFER_SIZE;
     char* contents = TEA_ALLOCATE(T, char, current_size);
     size_t read_bytes = 0;
     size_t total_read_bytes = 0;
@@ -117,7 +117,7 @@ static void file_read(TeaState* T)
 
     contents = TEA_GROW_ARRAY(T, char, contents, current_size, total_read_bytes + 1);
 
-    tea_push_slot(T, OBJECT_VAL(tea_take_string(T, contents, total_read_bytes)));
+    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, contents, total_read_bytes)));
 }
 
 static void file_readline(TeaState* T)
@@ -155,7 +155,7 @@ static void file_readline(TeaState* T)
             line[line_length] = '\0';
             line = TEA_GROW_ARRAY(T, char, line, current_size, line_length + 1);
 
-            tea_push_slot(T, OBJECT_VAL(tea_take_string(T, line, line_length)));
+            tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, line, line_length)));
             return;
         }
     }
@@ -212,7 +212,7 @@ static void file_close(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
 
-    TeaObjectFile* file = AS_FILE(T->slot[0]);
+    TeaObjectFile* file = AS_FILE(T->top[-1]);
     if(!file->is_open)
     {
         tea_error(T, "File already closed");
@@ -258,6 +258,7 @@ static const TeaClass file_class[] = {
 void tea_open_file(TeaState* T)
 {
     tea_create_class(T, TEA_FILE_CLASS, file_class);
-    T->file_class = AS_CLASS(T->slot[T->top - 1]);
+    T->file_class = AS_CLASS(T->top[-1]);
     tea_set_global(T, TEA_FILE_CLASS);
+    tea_push_null(T);
 }

@@ -61,7 +61,7 @@ static void random_shuffle(TeaState* T)
     tea_check_list(T, 0);
 
     // A small internal hack
-    TeaObjectList* list = AS_LIST(T->slot[0]);
+    TeaObjectList* list = AS_LIST(T->top[-1]);
 
     if(list->items.count <= 1)
     {
@@ -80,6 +80,7 @@ static void random_shuffle(TeaState* T)
 static void random_choice(TeaState* T)
 {
     int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 1);
 
     tea_check_list(T, 0);
 

@@ -105,15 +105,65 @@ static void run_file(TeaState* T, const char* path)
         exit(70);
 }
 
+void f(TeaState* T)
+{
+    printf(":: top = %d\n", tea_get_top(T));
+    double a = tea_get_number(T, 0);
+    double b = tea_get_number(T, 1);
+    printf(":: a = %f\n:: b = %f\n", a, b);
+    tea_push_number(T, a + b);
+    printf(":: a + b = %f\n", tea_get_number(T, 2));
+}
+
+void h(TeaState* T)
+{
+    printf(":: top = %d\n", tea_get_top(T));
+    printf(":: %s\n", tea_type_name(T, 0));
+
+    printf(":: from H function\n");
+
+    tea_push_range(T, 1, 2, 3);
+}
+
+void g(TeaState* T)
+{
+    printf(":: top = %d\n", tea_get_top(T));
+    printf(":: %s %s\n", tea_get_string(T, 0), tea_get_string(T, 1));
+
+    tea_push_cfunction(T, h);
+    tea_new_list(T);
+    tea_call(T, 1);
+}
+
 int main(int argc, const char* argv[])
 {
     TeaState* T = tea_open();
     if(T == NULL)
     {
         fprintf(stderr, "Cannot create state: not enough memory");
-        return 1;
+        return EXIT_FAILURE;
     }
     tea_set_argv(T, argc, argv);
+
+    printf(":: top = %d\n", tea_get_top(T));
+
+    tea_push_cfunction(T, g);
+    tea_push_string(T, "HELLO");
+    tea_push_string(T, "WORLD");
+    printf(":: top = %d\n", tea_get_top(T));
+    tea_call(T, 2);
+
+    printf(":: top = %d\n", tea_get_top(T));
+
+    tea_push_cfunction(T, g);
+    tea_push_string(T, "HELLO");
+    tea_push_string(T, "WORLD");
+    printf(":: top = %d\n", tea_get_top(T));
+    tea_call(T, 2);
+
+    printf(":: top = %d\n", tea_get_top(T));
+    tea_pop(T, 2);
+    printf(":: top = %d\n", tea_get_top(T));
 
     if(argc == 1)
     {
@@ -131,7 +181,10 @@ int main(int argc, const char* argv[])
         exit(64);
     }
 
+    printf(":: top = %d\n", tea_get_top(T));
+    printf(":: type = %s\n", tea_type_name(T, -1));
+
     tea_close(T);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

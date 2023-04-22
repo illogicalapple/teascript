@@ -11,11 +11,11 @@ static void map_len(TeaState* T)
 
 static void map_keys(TeaState* T)
 {
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
 
-    tea_push_list(T);
+    tea_new_list(T);
 
-    TeaObjectList* list = AS_LIST(T->slot[1]);
+    TeaObjectList* list = AS_LIST(T->top[-2]);
     for(int i = 0; i < map->capacity; i++)
     {
         if(map->items[i].empty) continue;
@@ -25,11 +25,11 @@ static void map_keys(TeaState* T)
 
 static void map_values(TeaState* T)
 {
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
 
-    tea_push_list(T);
+    tea_new_list(T);
 
-    TeaObjectList* list = AS_LIST(T->slot[1]);
+    TeaObjectList* list = AS_LIST(T->top[-2]);
     for(int i = 0; i < map->capacity; i++)
     {
         if(map->items[i].empty) continue;
@@ -42,7 +42,7 @@ static void map_clear(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
     map->items = NULL;
     map->capacity = 0;
     map->count = 0;
@@ -53,15 +53,15 @@ static void map_contains(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
 
-    if(!tea_is_valid_key(T->slot[1]))
+    if(!teaO_is_valid_key(T->top[-2]))
     {
         tea_error(T, "Map key isn't hashable");
     }
     
     TeaValue _;
-    tea_push_bool(T, tea_map_get(map, T->slot[1], &_));
+    tea_push_bool(T, teaO_map_get(map, T->top[-2], &_));
 }
 
 static void map_delete(TeaState* T)
@@ -69,18 +69,18 @@ static void map_delete(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
     TeaValue _;
-    if(!tea_is_valid_key(T->slot[1]))
+    if(!teaO_is_valid_key(T->top[-2]))
     {
         tea_error(T, "Map key isn't hashable");
     }
-    else if(!tea_map_get(map, T->slot[1], &_))
+    else if(!teaO_map_get(map, T->top[-2], &_))
     {
         tea_error(T, "No such key in the map");
     }
 
-    tea_map_delete(map, T->slot[1]);
+    teaO_map_delete(map, T->top[-2]);
 }
 
 static void map_copy(TeaState* T)
@@ -88,15 +88,15 @@ static void map_copy(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
 
-    tea_push_map(T);
+    tea_new_map(T);
 
-    TeaObjectMap* new = AS_MAP(T->slot[1]);
+    TeaObjectMap* new = AS_MAP(T->top[-2]);
     for(int i = 0; i < map->capacity; i++)
     {
         if(map->items[i].empty) continue;
-        tea_map_set(T, new, OBJECT_VAL(map->items[i].key), map->items[i].value);
+        teaO_map_set(T, new, OBJECT_VAL(map->items[i].key), map->items[i].value);
     }
 }
 
@@ -105,7 +105,7 @@ static void map_iterate(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
     if(map->count == 0)
     {
         tea_push_null(T);
@@ -159,7 +159,7 @@ static void map_iteratorvalue(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
 
-    TeaObjectMap* map = AS_MAP(T->slot[0]);
+    TeaObjectMap* map = AS_MAP(T->top[-1]);
     int index = tea_check_number(T, 1);
 
     TeaMapItem* item = &map->items[index];
@@ -168,7 +168,7 @@ static void map_iteratorvalue(TeaState* T)
         tea_error(T, "Invalid map iterator");
     }
 
-    tea_push_list(T);
+    tea_new_list(T);
     tea_push_slot(T, item->key);
     tea_add_item(T, 2);
     tea_push_slot(T, item->value);
@@ -191,6 +191,7 @@ static const TeaClass map_class[] = {
 void tea_open_map(TeaState* T)
 {
     tea_create_class(T, TEA_MAP_CLASS, map_class);
-    T->map_class = AS_CLASS(T->slot[T->top - 1]);
+    T->map_class = AS_CLASS(T->top[-1]);
     tea_set_global(T, TEA_MAP_CLASS);
+    tea_push_null(T);
 }
