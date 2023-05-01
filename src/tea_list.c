@@ -442,7 +442,6 @@ static void list_copy(TeaState* T)
     }
 }
 
-
 static void list_map(TeaState* T) 
 {
     int count = tea_get_top(T);
@@ -474,8 +473,9 @@ static void list_foreach(TeaState* T)
         tea_push_value(T, 1);
         tea_get_item(T, 0, i);
         tea_call(T, 1);
+        tea_pop(T, 1);
     }
-    tea_push_value(T, 0);
+    tea_set_top(T, 1);
 }
 
 static void list_filter(TeaState* T) 

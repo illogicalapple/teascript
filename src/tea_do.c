@@ -136,12 +136,14 @@ static bool callc(TeaState* T, TeaObjectNative* native, int arg_count)
     frame->slots = T->top - arg_count - 1;
     frame->base = T->base;
 
-    if(native->type == NATIVE_METHOD || native->type == NATIVE_PROPERTY) T->base = T->top - arg_count - 1;
-    else T->base = T->top - arg_count;
+    if(native->type == NATIVE_METHOD || native->type == NATIVE_PROPERTY) 
+        T->base = T->top - arg_count - 1;
+    else 
+        T->base = T->top - arg_count;
 
     native->fn(T);
-
-    TeaValue res = teaV_pop(T, 1);
+    
+    TeaValue res = T->top[-1];
 
     frame = &T->frames[--T->frame_count];
 
@@ -224,7 +226,7 @@ int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
     status = teaD_runprotected(T, f_call, &c);
     if(status != 0)
     {
-        T->top = T->stack;
+        T->top = T->base = T->stack;
         T->frame_count = 0;
         T->open_upvalues = NULL;
     }

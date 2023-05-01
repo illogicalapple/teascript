@@ -40,7 +40,7 @@ TEA_API void tea_set_top(TeaState* T, int index)
     }
     else
     {
-        T->top += index + 1;
+        T->top += index;
     }
 }
 
