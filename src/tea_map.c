@@ -169,9 +169,9 @@ static void map_iteratorvalue(TeaState* T)
     }
 
     tea_new_list(T);
-    tea_push_slot(T, item->key);
+    teaV_push(T, item->key);
     tea_add_item(T, 2);
-    tea_push_slot(T, item->value);
+    teaV_push(T, item->value);
     tea_add_item(T, 2);
 }
 

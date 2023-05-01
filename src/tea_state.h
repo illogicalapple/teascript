@@ -50,25 +50,15 @@ typedef struct TeaState
     int gray_count;
     int gray_capacity;
     TeaObject** gray_stack;
-    jmp_buf error_jump;
+    struct tea_longjmp* error_jump;
     int argc;
     const char** argv;
     bool repl;
 } TeaState;
 
-#define tea_exit_jump(T) (longjmp(T->error_jump, 1))
-#define tea_set_jump(T) (setjmp(T->error_jump))
+#define tea_exit_jump(T) (longjmp(T->error_jump->buf, 1))
+#define tea_set_jump(T) (setjmp(T->error_jump->buf))
 
 TeaObjectClass* teaE_get_class(TeaState* T, TeaValue value);
-
-static inline void tea_push_slot(TeaState* T, TeaValue value)
-{
-    *T->top++ = value;
-}
-
-static inline void tea_pop_slot(TeaState* T)
-{
-    T->top--;
-}
 
 #endif

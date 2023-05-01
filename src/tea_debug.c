@@ -6,6 +6,7 @@
 #include "tea_debug.h"
 #include "tea_object.h"
 #include "tea_value.h"
+#include "tea_state.h"
 
 static void print_object(TeaValue object)
 {
@@ -165,6 +166,18 @@ static int jump_instruction(const char* name, int sign, TeaChunk* chunk, int off
     printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
 
     return offset + 3;
+}
+
+int teaG_dump_stack(TeaState* T)
+{
+    printf("          ");
+    for(TeaValue* slot = T->stack; slot < T->top; slot++)
+    { \
+        printf("[ ");
+        teaG_print_value(*slot);
+        printf(" ]");
+    } \
+    printf("\n");
 }
 
 int teaG_dump_instruction(TeaState* T, TeaChunk* chunk, int offset)

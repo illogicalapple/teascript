@@ -170,9 +170,9 @@ TeaObjectString* teaL_number_tostring(TeaState* T, double number)
         }
     }
 
-    int length = snprintf(NULL, 0, "%.16g", number);
+    int length = snprintf(NULL, 0, TEA_NUMBER_FMT, number);
     char* string = TEA_ALLOCATE(T, char, length + 1);
-    snprintf(string, length + 1, "%.16g", number);
+    snprintf(string, length + 1, TEA_NUMBER_FMT, number);
 
     return teaO_take_string(T, string, length);
 }

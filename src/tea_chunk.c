@@ -5,6 +5,7 @@
 #include "tea_memory.h"
 #include "tea_state.h"
 #include "tea_value.h"
+#include "tea_vm.h"
 
 void teaK_init(TeaChunk* chunk)
 {
@@ -58,9 +59,9 @@ void teaK_write(TeaState* T, TeaChunk* chunk, uint8_t byte, int line)
 
 int teaK_add_constant(TeaState* T, TeaChunk* chunk, TeaValue value)
 {
-    tea_push_slot(T, value);
+    teaV_push(T, value);
     tea_write_value_array(T, &chunk->constants, value);
-    tea_pop_slot(T);
+    teaV_pop(T, 1);
 
     return chunk->constants.count - 1;
 }

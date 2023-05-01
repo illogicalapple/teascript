@@ -52,19 +52,19 @@
 
 typedef enum
 {
-    OBJ_NATIVE,
+    OBJ_STRING,
     OBJ_RANGE,
-    OBJ_FILE,
+    OBJ_FUNCTION,
+    OBJ_NATIVE,
     OBJ_MODULE,
+    OBJ_CLOSURE,
+    OBJ_UPVALUE,
+    OBJ_CLASS,
+    OBJ_INSTANCE,
+    OBJ_BOUND_METHOD,
     OBJ_LIST,
     OBJ_MAP,
-    OBJ_BOUND_METHOD,
-    OBJ_CLASS,
-    OBJ_CLOSURE,
-    OBJ_FUNCTION,
-    OBJ_INSTANCE,
-    OBJ_STRING,
-    OBJ_UPVALUE,
+    OBJ_FILE,
     OBJ_USERDATA,
 } TeaObjectType;
 
@@ -215,10 +215,6 @@ typedef struct TeaObjectUserdata
     size_t size;
     TeaFreeFunction fn;
 } TeaObjectUserdata;
-
-void tea_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start);
-void tea_ensure_callframe(TeaState* T);
-void tea_ensure_stack(TeaState* T, int needed);
 
 TeaObjectUserdata* teaO_new_userdata(TeaState* T, size_t size);
 TeaObjectBoundMethod* teaO_new_bound_method(TeaState* T, TeaValue receiver, TeaValue method);

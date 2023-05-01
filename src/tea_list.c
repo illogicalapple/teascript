@@ -95,7 +95,7 @@ static void list_delete(TeaState* T)
         return;
     }
 
-    int index = tea_check_int(T, 1);
+    int index = tea_check_number(T, 1);
 
     if(index < 0 || index > len)
     {
@@ -423,7 +423,7 @@ static void list_join(TeaState* T)
     string[length] = '\0';
     tea_pop(T, 2);
 
-    tea_push_slot(T, OBJECT_VAL(teaO_take_string(T, string, length)));
+    teaV_push(T, OBJECT_VAL(teaO_take_string(T, string, length)));
 }
 
 static void list_copy(TeaState* T)
@@ -440,6 +440,71 @@ static void list_copy(TeaState* T)
         tea_get_item(T, 0, i);
         tea_add_item(T, 1);
     }
+}
+
+
+static void list_map(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+
+    int len = tea_len(T, 0);
+
+    tea_new_list(T);
+
+    for(int i = 0; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_get_item(T, 0, i);
+        tea_call(T, 1);
+        tea_add_item(T, 2);
+    }
+    tea_push_value(T, 2);
+}
+
+static void list_foreach(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+
+    int len = tea_len(T, 0);
+
+    for(int i = 0; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_get_item(T, 0, i);
+        tea_call(T, 1);
+    }
+    tea_push_value(T, 0);
+}
+
+static void list_filter(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+
+    int len = tea_len(T, 0);
+
+    tea_new_list(T);
+
+    int j = 0;
+    for(int i = 0; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_get_item(T, 0, i);
+        tea_call(T, 1);
+
+        bool filter = tea_check_bool(T, -1);
+        tea_pop(T, 1);
+
+        if(filter) 
+        {
+            tea_get_item(T, 0, i);
+            tea_add_item(T, 2);
+            j++;
+        }
+    }
+    tea_push_value(T, 2);
 }
 
 static void list_iterate(TeaState* T)
@@ -488,45 +553,6 @@ static void list_iteratorvalue(TeaState* T)
     tea_get_item(T, 0, index);
 }
 
-static void list_map(TeaState* T) 
-{
-    int count = tea_get_top(T);
-    tea_ensure_min_args(T, count, 2);
-
-    //tea_check_type(T, 1, TEA_TFUNCTION);
-    int len = tea_len(T, 0);
-    //printf(":: list len = %d, is = %d\n", len, tea_is_list(T, 0));
-    //printf(":: count = %d\n", count);
-
-    for(int i = 0; i < len; i++) 
-    {
-        tea_push_value(T, 1);
-        tea_get_item(T, 0, i);
-        tea_call(T, 1);
-        //printf("CALLLLKKDSAL : %s\n", teaL_tostring(T, T->base[0])->chars);
-        //printf(":: count = %d\n", tea_get_top(T));
-        tea_set_item(T, 0, i);
-        //printf("TOP??? : %s\n", teaL_tostring(T, T->top[-1])->chars);
-    }
-    tea_push_value(T, 0);
-}
-
-static void list_foreach(TeaState* T) 
-{
-    int count = tea_get_top(T);
-    tea_ensure_min_args(T, count, 2);
-
-    int len = tea_len(T, 0);
-
-    for(int i = 0; i < len; i++) 
-    {
-        tea_push_value(T, 1);
-        tea_get_item(T, 0, i);
-        tea_call(T, 1);
-    }
-    tea_push_value(T, 0);
-}
-
 static const TeaClass list_class[] = {
     { "len", "property", list_len },
     { "add", "method", list_add },
@@ -544,10 +570,11 @@ static const TeaClass list_class[] = {
     { "index", "method", list_index },
     { "join", "method", list_join },
     { "copy", "method", list_copy },
+    { "map", "method", list_map },
+    { "filter", "method", list_filter },
+    { "foreach", "method", list_foreach },
     { "iterate", "method", list_iterate },
     { "iteratorvalue", "method", list_iteratorvalue },
-    { "map", "method", list_map },
-    { "foreach", "method", list_foreach },
     { NULL, NULL, NULL }
 };
 

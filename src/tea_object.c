@@ -10,6 +10,7 @@
 #include "tea_table.h"
 #include "tea_value.h"
 #include "tea_state.h"
+#include "tea_vm.h"
 
 TeaObject* teaO_allocate(TeaState* T, size_t size, TeaObjectType type)
 {
@@ -34,51 +35,6 @@ TeaObjectNative* teaO_new_native(TeaState* T, TeaNativeType type, TeaCFunction f
     native->fn = fn;
 
     return native;
-}
-
-void tea_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start)
-{
-    TeaCallFrame* frame = &T->frames[T->frame_count++];
-    frame->slots = start;
-    frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
-}
-
-void tea_ensure_callframe(TeaState* T)
-{
-    if(T->frame_count + 1 > T->frame_capacity)
-    {
-        int max = T->frame_capacity * 2;
-        T->frames = (TeaCallFrame*)teaM_reallocate(T, T->frames, sizeof(TeaCallFrame) * T->frame_capacity, sizeof(TeaCallFrame) * max);
-        T->frame_capacity = max;
-    }
-}
-
-void tea_ensure_stack(TeaState* T, int needed)
-{
-    if(T->stack_capacity >= needed) return;
-
-	int capacity = (int)tea_closest_power_of_two((int)needed);
-	TeaValue* old_stack = T->stack;
-
-	T->stack = (TeaValue*)teaM_reallocate(T, T->stack, sizeof(TeaValue) * T->stack_capacity, sizeof(TeaValue) * capacity);
-	T->stack_capacity = capacity;
-
-	if(T->stack != old_stack)
-    {
-		for(int i = 0; i < T->frame_capacity; i++)
-        {
-			TeaCallFrame* frame = &T->frames[i];
-			frame->slots = T->stack + (frame->slots - old_stack);
-		}
-
-		for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
-        {
-			upvalue->location = T->stack + (upvalue->location - old_stack);
-		}
-
-		T->top = T->stack + (T->top - old_stack);
-	}
 }
 
 TeaObjectUserdata* teaO_new_userdata(TeaState* T, size_t size)
@@ -132,9 +88,9 @@ TeaObjectModule* teaO_new_module(TeaState* T, TeaObjectString* name)
     module->name = name;
     module->path = NULL;
     
-    tea_push_slot(T, OBJECT_VAL(module));
+    teaV_push(T, OBJECT_VAL(module));
     teaT_set(T, &T->modules, name, OBJECT_VAL(module));
-    tea_pop_slot(T);
+    teaV_pop(T, 1);
 
     return module;
 }
@@ -226,9 +182,9 @@ static TeaObjectString* allocate_string(TeaState* T, char* chars, int length, ui
     string->chars = chars;
     string->hash = hash;
 
-    tea_push_slot(T, OBJECT_VAL(string));
+    teaV_push(T, OBJECT_VAL(string));
     teaT_set(T, &T->strings, string, NULL_VAL);
-    tea_pop_slot(T);
+    teaV_pop(T, 1);
 
     return string;
 }

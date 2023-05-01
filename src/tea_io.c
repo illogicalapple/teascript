@@ -7,6 +7,7 @@
 
 #include "tea_import.h"
 #include "tea_core.h"
+#include "tea_vm.h"
 
 static void create_stdfile(TeaState* T, FILE* f, const char* name, const char* mode)
 {
@@ -14,7 +15,7 @@ static void create_stdfile(TeaState* T, FILE* f, const char* name, const char* m
     file->file = f;
     file->is_open = -1;
 
-    tea_push_slot(T, OBJECT_VAL(file));
+    teaV_push(T, OBJECT_VAL(file));
 
     tea_set_key(T, 0, name);
 }

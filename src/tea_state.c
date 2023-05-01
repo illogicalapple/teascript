@@ -8,6 +8,8 @@
 #include "tea_compiler.h"
 #include "tea_core.h"
 #include "tea_vm.h"
+#include "tea_util.h"
+#include "tea_do.h"
 
 static void free_state(TeaState* T)
 {
@@ -36,6 +38,7 @@ TEA_API TeaState* tea_open()
     TeaState* T = (TeaState*)malloc(sizeof(*T));
     if(T == NULL) 
         return T;
+    T->error_jump = NULL;
     T->objects = NULL;
     T->last_module = NULL;
     T->bytes_allocated = 0;
@@ -101,5 +104,27 @@ TeaObjectClass* teaE_get_class(TeaState* T, TeaValue value)
 
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source)
 {
-    return teaV_interpret_module(T, module_name, source);
+    //return teaV_interpret_module(T, module_name, source);
+    TeaObjectString* name = teaO_new_string(T, module_name);
+    teaV_push(T, OBJECT_VAL(name));
+    TeaObjectModule* module = teaO_new_module(T, name);
+    teaV_pop(T, 1);
+
+    teaV_push(T, OBJECT_VAL(module));
+    module->path = teaZ_get_directory(T, (char*)module_name);
+    teaV_pop(T, 1);
+    
+    TeaObjectFunction* function = teaY_compile(T, module, source);
+    if(function == NULL)
+        return TEA_COMPILE_ERROR;
+
+    teaV_push(T, OBJECT_VAL(function));
+    TeaObjectClosure* closure = teaO_new_closure(T, function);
+    teaV_pop(T, 1);
+
+    teaV_push(T, OBJECT_VAL(closure));
+    //teaD_call_value(T, OBJECT_VAL(closure), 0);
+
+    //return teaV_run(T);
+    return teaD_pcall(T, OBJECT_VAL(closure), 0);
 }

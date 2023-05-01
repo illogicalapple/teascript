@@ -1,4 +1,4 @@
-src/*.o
+*.o
 *.exe
 .vscode
 tea.tea
