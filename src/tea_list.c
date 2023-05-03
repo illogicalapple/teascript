@@ -8,7 +8,6 @@
 #include "tea_vm.h"
 #include "tea_memory.h"
 #include "tea_core.h"
-#include "tea_debug.h"
 
 static void list_len(TeaState* T)
 {

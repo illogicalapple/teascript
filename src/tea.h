@@ -74,8 +74,6 @@ typedef enum
     TEA_TYPE_USERDATA,
 } TeaType;
 
-//TEA_API double tea_version(TeaState* T);
-
 //TEA_API TeaState* tea_new_state(TeaState* T, TeaReallocateFn* realloc_fn);
 TEA_API TeaState* tea_open();
 TEA_API void tea_close(TeaState* T);

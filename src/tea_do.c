@@ -3,7 +3,6 @@
 
 #include "tea_do.h"
 #include "tea_vm.h"
-#include "tea_debug.h"
 
 struct tea_longjmp
 {

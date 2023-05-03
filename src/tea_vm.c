@@ -467,9 +467,9 @@ static bool get_property(TeaState* T, TeaValue receiver, TeaObjectString* name, 
                 return true;
             }
 
-            if(bind_method(T, instance->klass, name))
+            if(!bind_method(T, instance->klass, name))
             {
-                return true;
+                return false;
             }
 
             TeaObjectClass* klass = instance->klass;
@@ -1724,6 +1724,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 if(T->frame_count == 0)
                 {
                     DROP(1);
+                    //PUSH(result);
                     return TEA_OK;
                 }
 
@@ -1733,16 +1734,11 @@ TeaInterpretResult teaV_run(TeaState* T)
                     T->base = cframe->base + 1;
                     T->top = slots;
                     PUSH(result);
-                    
-                    //puts("START");
-                    //teaG_dump_stack(T);
-                    //puts("END");
                     //printf("OP_RETURN : %s\n", teaL_tostring(T, T->top[-1])->chars);
-                    //printf("TYPE BASE %s\n", teaL_tostring(T, T->base[0])->chars);
                     return TEA_OK;
                 }
                 T->top = slots;
-                T->base = frame->base;
+                T->base = cframe->base;
                 PUSH(result);
                 READ_FRAME();
                 DISPATCH();
