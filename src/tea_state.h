@@ -30,6 +30,7 @@ typedef struct TeaState
     TeaCallFrame* frames;
     int frame_capacity;
     int frame_count;
+    unsigned int nccalls;
     TeaObjectUpvalue* open_upvalues;
     TeaCompiler* compiler;
     TeaTable modules;
