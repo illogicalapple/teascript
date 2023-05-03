@@ -30,6 +30,7 @@ static void init_stack(TeaState* T)
     T->frames = TEA_ALLOCATE(T, TeaCallFrame, 8);
     T->frame_count = 0;
     T->frame_capacity = 8;
+    T->nccalls = 0;
     T->open_upvalues = NULL;
 }
 

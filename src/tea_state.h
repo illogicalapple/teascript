@@ -54,6 +54,7 @@ typedef struct TeaState
     int argc;
     const char** argv;
     bool repl;
+    int nccalls;
 } TeaState;
 
 #define tea_exit_jump(T) (longjmp(T->error_jump->buf, 1))

@@ -209,12 +209,18 @@ static void f_call(TeaState* T, void* ud)
 
 void teaD_call(TeaState* T, TeaValue func, int arg_count)
 {
-    bool status = teaD_call_value(T, func, arg_count);
+    if(++T->nccalls >= 200)
+    {
+        puts("C stack overflow");
+        teaD_throw(T, TEA_RUNTIME_ERROR);
+    }
+    teaD_call_value(T, func, arg_count);
 
-    if(status && IS_CLOSURE(func))
+    if(IS_CLOSURE(func))
     {
         teaV_run(T);
     }
+    T->nccalls--;
 }
 
 int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
