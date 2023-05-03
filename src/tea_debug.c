@@ -37,6 +37,9 @@ static void print_object(TeaValue object)
         case OBJ_INSTANCE: 
             printf("<instance>");
             break;
+        case OBJ_BOUND_METHOD: 
+            printf("<method>");
+            break;
         case OBJ_LIST: 
             printf("<list>");
             break;
@@ -168,15 +171,15 @@ static int jump_instruction(const char* name, int sign, TeaChunk* chunk, int off
     return offset + 3;
 }
 
-int teaG_dump_stack(TeaState* T)
+void teaG_dump_stack(TeaState* T)
 {
     printf("          ");
     for(TeaValue* slot = T->stack; slot < T->top; slot++)
-    { \
+    {
         printf("[ ");
         teaG_print_value(*slot);
         printf(" ]");
-    } \
+    }
     printf("\n");
 }
 

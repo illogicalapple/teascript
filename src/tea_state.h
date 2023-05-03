@@ -24,7 +24,7 @@ typedef struct
 typedef struct TeaState
 {
     TeaValue* stack;
-    TeaValue* top;
+    TeaValue* top;  // first free slot in the stack
     TeaValue* base;
     int stack_capacity;
     TeaCallFrame* frames;
