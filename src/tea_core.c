@@ -222,8 +222,7 @@ static void callt(TeaState* T)
 {
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
-    //printf("::TOP is %d\n", count);
-    //printf("::CALL is %d\n", IS_CLOSURE(T->top[-1]));
+    tea_check_function(T, 0);
     tea_push_string(T, "HELLO");
     tea_push_string(T, "WORLD");
     tea_call(T, 2);

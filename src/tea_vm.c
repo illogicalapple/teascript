@@ -1731,14 +1731,11 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaCallFrame* cframe = &T->frames[T->frame_count - 1];
                 if(cframe->closure == NULL)
                 {
-                    T->base = cframe->base + 1;
-                    T->top = slots;
                     PUSH(result);
                     //printf("OP_RETURN : %s\n", teaL_tostring(T, T->top[-1])->chars);
                     return TEA_OK;
                 }
                 T->top = slots;
-                T->base = cframe->base;
                 PUSH(result);
                 READ_FRAME();
                 DISPATCH();

@@ -446,6 +446,9 @@ static void list_map(TeaState* T)
 {
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
+    
+    tea_check_list(T, 0);
+    tea_check_function(T, 1);
 
     int len = tea_len(T, 0);
 
@@ -465,6 +468,9 @@ static void list_foreach(TeaState* T)
 {
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 2);
+
+    tea_check_list(T, 0);
+    tea_check_function(T, 1);
 
     int len = tea_len(T, 0);
 

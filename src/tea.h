@@ -53,7 +53,8 @@ typedef enum TeaInterpretResult
 {
     TEA_OK,
     TEA_COMPILE_ERROR,
-    TEA_RUNTIME_ERROR
+    TEA_RUNTIME_ERROR,
+    TEA_MEMORY_ERROR,
 } TeaInterpretResult;
 
 typedef enum
@@ -151,7 +152,7 @@ TEA_API void tea_collect_garbage(TeaState* T);
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source);
 
 TEA_API void tea_call(TeaState* T, int n);
-TEA_API void tea_pcall(TeaState* T, int n);
+//TEA_API void tea_pcall(TeaState* T, int n);
 //TEA_API TeaInterpreterResult tea_pcall(TeaState* T, int n);
 
 TEA_API void tea_error(TeaState* T, const char* fmt, ...);
@@ -166,6 +167,7 @@ TEA_API void tea_error(TeaState* T, const char* fmt, ...);
 
 #define tea_check_string(T, index) (tea_check_lstring(T, (index), NULL))
 #define tea_check_list(T, index) (tea_check_type(T, index, TEA_TYPE_LIST))
+#define tea_check_function(T, index) (tea_check_type(T, index, TEA_TYPE_FUNCTION))
 #define tea_check_map(T, index) (tea_check_type(T, index, TEA_TYPE_MAP))
 #define tea_check_file(T, index) (tea_check_type(T, index, TEA_TYPE_FILE))
 
