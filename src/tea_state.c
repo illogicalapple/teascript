@@ -10,6 +10,7 @@
 #include "tea_vm.h"
 #include "tea_util.h"
 #include "tea_do.h"
+#include "tea_gc.h"
 
 static void free_state(TeaState* T)
 {
@@ -77,7 +78,7 @@ TEA_API void tea_close(TeaState* T)
     teaT_free(T, &T->constants);
     teaT_free(T, &T->strings);
     free_stack(T);
-    teaM_free_objects(T);
+    teaC_free_objects(T);
 
 #if defined(TEA_DEBUG_TRACE_MEMORY) || defined(TEA_DEBUG_FINAL_MEMORY)
     printf("total bytes lost: %zu\n", T->bytes_allocated);
@@ -105,7 +106,6 @@ TeaObjectClass* teaE_get_class(TeaState* T, TeaValue value)
 
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source)
 {
-    //return teaV_interpret_module(T, module_name, source);
     TeaObjectString* name = teaO_new_string(T, module_name);
     teaV_push(T, OBJECT_VAL(name));
     TeaObjectModule* module = teaO_new_module(T, name);
@@ -124,8 +124,6 @@ TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, c
     teaV_pop(T, 1);
 
     teaV_push(T, OBJECT_VAL(closure));
-    //teaD_call_value(T, OBJECT_VAL(closure), 0);
 
-    //return teaV_run(T);
     return teaD_pcall(T, OBJECT_VAL(closure), 0);
 }

@@ -26,11 +26,6 @@
 
 void* teaM_reallocate(TeaState* T, void* pointer, size_t old_size, size_t new_size);
 
-void teaM_mark_object(TeaState* T, TeaObject* object);
-void teaM_mark_value(TeaState* T, TeaValue value);
-
-void teaM_free_objects(TeaState* T);
-
-int tea_closest_power_of_two(int n);
+int teaM_closest_power_of_two(int n);
 
 #endif

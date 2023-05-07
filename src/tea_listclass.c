@@ -74,7 +74,7 @@ static void list_remove(TeaState* T)
 
     if(found) 
     {
-        AS_LIST(T->top[-1])->items.count--;
+        AS_LIST(T->base[0])->items.count--;
         tea_pop(T, 1);
         return;
     }
@@ -108,7 +108,7 @@ static void list_delete(TeaState* T)
         tea_set_item(T, 0, i);
     }
 
-    AS_LIST(T->top[-1])->items.count--;
+    AS_LIST(T->base[0])->items.count--;
     tea_pop(T, 1);
 }
 
@@ -117,7 +117,7 @@ static void list_clear(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
     
-    TeaObjectList* list = AS_LIST(T->top[-1]);
+    TeaObjectList* list = AS_LIST(T->base[0]);
     tea_init_value_array(&list->items);
 }
 
@@ -126,7 +126,7 @@ static void list_insert(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 3);
 
-    TeaObjectList* list = AS_LIST(T->top[-1]);
+    TeaObjectList* list = AS_LIST(T->base[0]);
     TeaValue insert_value = T->top[-2];
     int index = tea_check_number(T, 2);
 
@@ -464,26 +464,6 @@ static void list_map(TeaState* T)
     tea_push_value(T, 2);
 }
 
-static void list_foreach(TeaState* T) 
-{
-    int count = tea_get_top(T);
-    tea_ensure_min_args(T, count, 2);
-
-    tea_check_list(T, 0);
-    tea_check_function(T, 1);
-
-    int len = tea_len(T, 0);
-
-    for(int i = 0; i < len; i++) 
-    {
-        tea_push_value(T, 1);
-        tea_get_item(T, 0, i);
-        tea_call(T, 1);
-        tea_pop(T, 1);
-    }
-    tea_set_top(T, 1);
-}
-
 static void list_filter(TeaState* T) 
 {
     int count = tea_get_top(T);
@@ -511,6 +491,31 @@ static void list_filter(TeaState* T)
         }
     }
     tea_push_value(T, 2);
+}
+
+/*static void list_reduce(TeaState* T) 
+{
+    
+}*/
+
+static void list_foreach(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+
+    tea_check_list(T, 0);
+    tea_check_function(T, 1);
+
+    int len = tea_len(T, 0);
+
+    for(int i = 0; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_get_item(T, 0, i);
+        tea_call(T, 1);
+        tea_pop(T, 1);
+    }
+    tea_set_top(T, 1);
 }
 
 static void list_iterate(TeaState* T)
@@ -578,6 +583,7 @@ static const TeaClass list_class[] = {
     { "copy", "method", list_copy },
     { "map", "method", list_map },
     { "filter", "method", list_filter },
+    //{ "reduce", "method", list_reduce },
     { "foreach", "method", list_foreach },
     { "iterate", "method", list_iterate },
     { "iteratorvalue", "method", list_iteratorvalue },

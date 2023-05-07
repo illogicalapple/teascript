@@ -173,10 +173,7 @@ int teaG_dump_stack(TeaState* T)
     printf("          ");
     for(TeaValue* slot = T->stack; slot < T->top; slot++)
     {
-        if(slot == T->base)
-            printf("[(base) ");
-        else
-            printf("[ ");
+        printf("[ ");
         teaG_print_value(*slot);
         printf(" ]");
     }

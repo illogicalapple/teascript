@@ -1965,8 +1965,6 @@ TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, c
     teaV_pop(T, 1);
 
     teaV_push(T, OBJECT_VAL(closure));
-    //teaD_call_value(T, OBJECT_VAL(closure), 0);
 
-    //return teaV_run(T);
     teaD_call(T, OBJECT_VAL(closure), 0);
 }

@@ -13,7 +13,7 @@
 
 static void string_len(TeaState* T)
 {
-    tea_push_number(T, teaU_length(AS_STRING(T->top[-1])));
+    tea_push_number(T, teaU_length(AS_STRING(T->base[0])));
 }
 
 static void string_constructor(TeaState* T)
@@ -497,7 +497,7 @@ static void string_iteratorvalue(TeaState* T)
 
 	int index = tea_check_number(T, 1);
 
-    teaV_push(T, OBJECT_VAL(teaU_code_point_at(T, AS_STRING(T->top[-1]), index)));
+    teaV_push(T, OBJECT_VAL(teaU_code_point_at(T, AS_STRING(T->base[0]), index)));
 }
 
 static const TeaClass string_class[] = {

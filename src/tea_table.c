@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "tea_gc.h"
 #include "tea_memory.h"
 #include "tea_object.h"
 #include "tea_table.h"
@@ -186,7 +187,7 @@ void teaT_mark(TeaState* T, TeaTable* table)
     for(int i = 0; i < table->capacity; i++)
     {
         TeaEntry* entry = &table->entries[i];
-        teaM_mark_object(T, (TeaObject*)entry->key);
-        teaM_mark_value(T, entry->value);
+        teaC_mark_object(T, (TeaObject*)entry->key);
+        teaC_mark_value(T, entry->value);
     }
 }

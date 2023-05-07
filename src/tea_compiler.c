@@ -8,7 +8,7 @@
 #include "tea_common.h"
 #include "tea_state.h"
 #include "tea_compiler.h"
-#include "tea_memory.h"
+#include "tea_gc.h"
 #include "tea_scanner.h"
 #include "tea_import.h"
 
@@ -2901,12 +2901,12 @@ TeaObjectFunction* teaY_compile(TeaState* T, TeaObjectModule* module, const char
 
 void teaY_mark_roots(TeaState* T, TeaCompiler* compiler)
 {
-    teaM_mark_value(T, compiler->parser->previous.value);
-    teaM_mark_value(T, compiler->parser->current.value);
+    teaC_mark_value(T, compiler->parser->previous.value);
+    teaC_mark_value(T, compiler->parser->current.value);
 
     while(compiler != NULL)
     {
-        teaM_mark_object(T, (TeaObject*)compiler->function);
+        teaC_mark_object(T, (TeaObject*)compiler->function);
         compiler = compiler->enclosing;
     }
 }

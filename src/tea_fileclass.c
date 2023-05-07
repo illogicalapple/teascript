@@ -16,7 +16,8 @@
 
 static TeaObjectFile* get_file(TeaState* T)
 {
-    TeaObjectFile* file = AS_FILE(T->top[-1]);
+    tea_check_file(T, 0);
+    TeaObjectFile* file = AS_FILE(T->base[0]);
     if(!file->is_open)
     {
         tea_error(T, "Attempt to use a closed file");
@@ -212,7 +213,7 @@ static void file_close(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
 
-    TeaObjectFile* file = AS_FILE(T->top[-1]);
+    TeaObjectFile* file = AS_FILE(T->base[0]);
     if(!file->is_open)
     {
         tea_error(T, "File already closed");

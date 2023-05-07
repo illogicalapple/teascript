@@ -35,7 +35,7 @@ void teaD_ensure_stack(TeaState* T, int needed)
 {
     if(T->stack_capacity >= needed) return;
 
-	int capacity = (int)tea_closest_power_of_two((int)needed);
+	int capacity = (int)teaM_closest_power_of_two((int)needed);
 	TeaValue* old_stack = T->stack;
 
 	T->stack = (TeaValue*)teaM_reallocate(T, T->stack, sizeof(TeaValue) * T->stack_capacity, sizeof(TeaValue) * capacity);
@@ -47,6 +47,7 @@ void teaD_ensure_stack(TeaState* T, int needed)
         {
 			TeaCallFrame* frame = &T->frames[i];
 			frame->slots = T->stack + (frame->slots - old_stack);
+			frame->base = T->stack + (frame->base - old_stack);
 		}
 
 		for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
@@ -55,6 +56,7 @@ void teaD_ensure_stack(TeaState* T, int needed)
 		}
 
 		T->top = T->stack + (T->top - old_stack);
+		T->base = T->stack + (T->base - old_stack);
 	}
 }
 
@@ -137,7 +139,7 @@ static bool callc(TeaState* T, TeaObjectNative* native, int arg_count)
     frame->slots = T->top - arg_count - 1;
     frame->base = T->base;
 
-    if(native->type == NATIVE_METHOD || native->type == NATIVE_PROPERTY) 
+    if(native->type > 0) 
         T->base = T->top - arg_count - 1;
     else 
         T->base = T->top - arg_count;
