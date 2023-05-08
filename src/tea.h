@@ -85,6 +85,7 @@ TEA_API void tea_set_repl(TeaState* T, int b);
 
 TEA_API int tea_get_top(TeaState* T);
 TEA_API void tea_set_top(TeaState* T, int index);
+// TEA_API void tea_remove(TeaState* T, int index);
 
 TEA_API int tea_type(TeaState* T, int index);
 TEA_API const char* tea_type_name(TeaState* T, int index);
@@ -152,7 +153,6 @@ TEA_API void tea_collect_garbage(TeaState* T);
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source);
 
 TEA_API void tea_call(TeaState* T, int n);
-//TEA_API void tea_pcall(TeaState* T, int n);
 //TEA_API TeaInterpreterResult tea_pcall(TeaState* T, int n);
 
 TEA_API void tea_error(TeaState* T, const char* fmt, ...);

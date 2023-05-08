@@ -739,7 +739,7 @@ static void repeat(TeaState* T)
     teaV_push(T, OBJECT_VAL(result));
 }
 
-TeaInterpretResult teaV_run(TeaState* T)
+void teaV_run(TeaState* T)
 {
     register TeaCallFrame* frame;
     register TeaChunk* current_chunk;
@@ -775,7 +775,6 @@ TeaInterpretResult teaV_run(TeaState* T)
     { \
         STORE_FRAME; \
         teaV_runtime_error(T, __VA_ARGS__); \
-        return TEA_RUNTIME_ERROR; \
         READ_FRAME(); \
         DISPATCH(); \
     } \
@@ -789,20 +788,14 @@ TeaInterpretResult teaV_run(TeaState* T)
         if(((IS_INSTANCE(a) && IS_INSTANCE(b)) || IS_INSTANCE(a)) && teaT_get(&AS_INSTANCE(a)->klass->methods, method_name, &method)) \
         { \
             STORE_FRAME; \
-            if(!teaD_call_value(T, method, arg_count)) \
-            { \
-                return TEA_RUNTIME_ERROR; \
-            } \
+            teaD_call_value(T, method, arg_count); \
             READ_FRAME(); \
             DISPATCH(); \
         } \
         else if(IS_INSTANCE(b) && teaT_get(&AS_INSTANCE(b)->klass->methods, method_name, &method)) \
         { \
             STORE_FRAME; \
-            if(!teaD_call_value(T, method, arg_count)) \
-            { \
-                return TEA_RUNTIME_ERROR; \
-            } \
+            teaD_call_value(T, method, arg_count); \
             READ_FRAME(); \
             DISPATCH(); \
         } \
@@ -1047,10 +1040,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaValue receiver = PEEK(0);
                 TeaObjectString* name = READ_STRING();
                 STORE_FRAME;
-                if(!get_property(T, receiver, name, true))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                get_property(T, receiver, name, true);
                 DISPATCH();
             }
             CASE_CODE(GET_PROPERTY_NO_POP):
@@ -1058,10 +1048,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaValue receiver = PEEK(0);
                 TeaObjectString* name = READ_STRING();
                 STORE_FRAME;
-                if(!get_property(T, receiver, name, false))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                get_property(T, receiver, name, false);
                 DISPATCH();
             }
             CASE_CODE(SET_PROPERTY):
@@ -1070,10 +1057,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaValue receiver = PEEK(1);
                 TeaValue item = PEEK(0);
                 STORE_FRAME;
-                if(!set_property(T, name, receiver, item))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                set_property(T, name, receiver, item);
                 DISPATCH();
             }
             CASE_CODE(GET_SUPER):
@@ -1081,10 +1065,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaObjectString* name = READ_STRING();
                 TeaObjectClass* superclass = AS_CLASS(POP());
                 STORE_FRAME;
-                if(!bind_method(T, superclass, name))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                bind_method(T, superclass, name);
                 DISPATCH();
             }
             CASE_CODE(RANGE):
@@ -1284,10 +1265,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                     DISPATCH();
                 }
                 STORE_FRAME;
-                if(!subscript(T, index, list))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                subscript(T, index, list);
                 DISPATCH();
             }
             CASE_CODE(SUBSCRIPT_STORE):
@@ -1305,10 +1283,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                     DISPATCH();
                 }
                 STORE_FRAME;
-                if(!subscript_store(T, item, index, list, true))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                subscript_store(T, item, index, list, true);
                 DISPATCH();
             }
             CASE_CODE(SUBSCRIPT_PUSH):
@@ -1318,10 +1293,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaValue index = PEEK(1);
                 TeaValue list = PEEK(2);
                 STORE_FRAME;
-                if(!subscript_store(T, item, index, list, false))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                subscript_store(T, item, index, list, false);
                 DISPATCH();
             }
             CASE_CODE(IS):
@@ -1366,10 +1338,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaValue object = PEEK(0);
                 TeaValue value = PEEK(1);
                 STORE_FRAME;
-                if(!in_(T, object, value))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                in_(T, object, value);
                 DISPATCH();
             }
             CASE_CODE(EQUAL):
@@ -1656,10 +1625,7 @@ TeaInterpretResult teaV_run(TeaState* T)
             {
                 int arg_count = READ_BYTE();
                 STORE_FRAME;
-                if(!teaD_call_value(T, PEEK(arg_count), arg_count))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                teaD_call_value(T, PEEK(arg_count), arg_count);
                 READ_FRAME();
                 DISPATCH();
             }
@@ -1668,10 +1634,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 TeaObjectString* method = READ_STRING();
                 int arg_count = READ_BYTE();
                 STORE_FRAME;
-                if(!invoke(T, PEEK(arg_count), method, arg_count))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                invoke(T, PEEK(arg_count), method, arg_count);
                 READ_FRAME();
                 DISPATCH();
             }
@@ -1681,10 +1644,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 int arg_count = READ_BYTE();
                 TeaObjectClass* superclass = AS_CLASS(POP());
                 STORE_FRAME;
-                if(!invoke_from_class(T, superclass, method, arg_count))
-                {
-                    return TEA_RUNTIME_ERROR;
-                }
+                invoke_from_class(T, superclass, method, arg_count);
                 READ_FRAME();
                 DISPATCH();
             }
@@ -1725,7 +1685,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 {
                     DROP(1);
                     //PUSH(result);
-                    return TEA_OK;
+                    return;
                 }
 
                 TeaCallFrame* cframe = &T->frames[T->frame_count - 1];
@@ -1733,7 +1693,7 @@ TeaInterpretResult teaV_run(TeaState* T)
                 {
                     PUSH(result);
                     //printf("OP_RETURN : %s\n", teaL_tostring(T, T->top[-1])->chars);
-                    return TEA_OK;
+                    return;
                 }
                 T->top = slots;
                 PUSH(result);
@@ -1822,16 +1782,19 @@ TeaInterpretResult teaV_run(TeaState* T)
                 module->path = teaZ_dirname(T, path, strlen(path));
                 T->last_module = module;
 
-                TeaObjectFunction* function = teaY_compile(T, module, source);
-
+                //TeaObjectFunction* function = teaY_compile(T, module, source);
+                int status = teaD_protected_compiler(T, module, source);
                 TEA_FREE_ARRAY(T, char, source, strlen(source) + 1);
 
-                if(function == NULL) return TEA_COMPILE_ERROR;
-                TeaObjectClosure* closure = teaO_new_closure(T, function);
-                PUSH(OBJECT_VAL(closure));
+                if(status != 0)
+                    teaD_throw(T, TEA_COMPILE_ERROR);
+
+                //if(function == NULL) return TEA_COMPILE_ERROR;
+                //TeaObjectClosure* closure = teaO_new_closure(T, function);
+                //PUSH(OBJECT_VAL(closure));
 
                 STORE_FRAME;
-                teaD_call_value(T, OBJECT_VAL(closure), 0);
+                teaD_call_value(T, T->top[-1], 0);
                 READ_FRAME();
 
                 DISPATCH();
@@ -1929,8 +1892,6 @@ TeaInterpretResult teaV_run(TeaState* T)
             }
         }
     }
-
-    return TEA_RUNTIME_ERROR;
 }
 #undef PUSH
 #undef POP
@@ -1956,7 +1917,7 @@ TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, c
     module->path = teaZ_get_directory(T, (char*)module_name);
     teaV_pop(T, 1);
     
-    TeaObjectFunction* function = teaY_compile(T, module, source);
+    /*TeaObjectFunction* function = teaY_compile(T, module, source);
     if(function == NULL)
         return TEA_COMPILE_ERROR;
 
@@ -1964,7 +1925,10 @@ TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, c
     TeaObjectClosure* closure = teaO_new_closure(T, function);
     teaV_pop(T, 1);
 
-    teaV_push(T, OBJECT_VAL(closure));
+    teaV_push(T, OBJECT_VAL(closure));*/
+    int status = teaD_protected_compiler(T, module, source);
+    if(status != 0)
+        return TEA_COMPILE_ERROR;
 
-    teaD_call(T, OBJECT_VAL(closure), 0);
+    teaD_call(T, T->top[-1], 0);
 }

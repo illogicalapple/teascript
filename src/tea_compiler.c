@@ -11,6 +11,7 @@
 #include "tea_gc.h"
 #include "tea_scanner.h"
 #include "tea_import.h"
+#include "tea_do.h"
 
 #ifdef TEA_DEBUG_PRINT_CODE
 #include "tea_debug.h"
@@ -23,9 +24,6 @@ static TeaChunk* current_chunk(TeaCompiler* compiler)
 
 static void error_at(TeaCompiler* compiler, TeaToken* token, const char* message)
 {
-    if(compiler->parser->panic_mode || compiler->parser->had_error)
-        return;
-    compiler->parser->panic_mode = true;
     fprintf(stderr, "File %s, [line %d] Error", compiler->parser->module->name->chars, token->line);
 
     if(token->type == TOKEN_EOF)
@@ -42,7 +40,8 @@ static void error_at(TeaCompiler* compiler, TeaToken* token, const char* message
     }
 
     fprintf(stderr, ": %s\n", message);
-    compiler->parser->had_error = true;
+    
+    teaD_throw(compiler->parser->T, TEA_COMPILE_ERROR);
 }
 
 static void error(TeaCompiler* compiler, const char* message)
@@ -2717,38 +2716,6 @@ static void multiple_assignment(TeaCompiler* compiler)
     }
 }
 
-static void synchronize(TeaCompiler* compiler)
-{
-    compiler->parser->panic_mode = false;
-
-    while(compiler->parser->current.type != TOKEN_EOF)
-    {
-        switch(compiler->parser->current.type)
-        {            
-            case TOKEN_ENUM:
-            case TOKEN_CLASS:
-            case TOKEN_STATIC:
-            case TOKEN_FUNCTION:
-            case TOKEN_SWITCH:
-            case TOKEN_VAR:
-            case TOKEN_CONST:
-            case TOKEN_FOR:
-            case TOKEN_IF:
-            case TOKEN_DO:
-            case TOKEN_WHILE:
-            case TOKEN_BREAK:
-            case TOKEN_RETURN:
-            case TOKEN_IMPORT:
-            case TOKEN_FROM:
-                return;
-
-            default:; // Do nothing
-        }
-
-        advance(compiler);
-    }
-}
-
 static void declaration(TeaCompiler* compiler)
 {
     if(match(compiler, TOKEN_CLASS))
@@ -2775,9 +2742,6 @@ static void declaration(TeaCompiler* compiler)
     {
         statement(compiler);
     }
-
-    if(compiler->parser->panic_mode)
-        synchronize(compiler);
 }
 
 static void statement(TeaCompiler* compiler)
@@ -2866,8 +2830,6 @@ TeaObjectFunction* teaY_compile(TeaState* T, TeaObjectModule* module, const char
 {
     TeaParser parser;
     parser.T = T;
-    parser.had_error = false;
-    parser.panic_mode = false;
     parser.module = module;
 
     TeaScanner scanner;
@@ -2896,7 +2858,7 @@ TeaObjectFunction* teaY_compile(TeaState* T, TeaObjectModule* module, const char
         teaT_free(T, &T->constants);
     }
 
-    return parser.had_error ? NULL : function;
+    return function;
 }
 
 void teaY_mark_roots(TeaState* T, TeaCompiler* compiler)

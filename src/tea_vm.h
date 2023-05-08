@@ -7,7 +7,7 @@
 #include "tea_state.h"
 
 void teaV_runtime_error(TeaState* T, const char* format, ...);
-TeaInterpretResult teaV_run(TeaState* T);
+void teaV_run(TeaState* T);
 TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, const char* source);
 
 static inline void teaV_push(TeaState* T, TeaValue value)

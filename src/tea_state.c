@@ -115,7 +115,7 @@ TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, c
     module->path = teaZ_get_directory(T, (char*)module_name);
     teaV_pop(T, 1);
     
-    TeaObjectFunction* function = teaY_compile(T, module, source);
+    /*TeaObjectFunction* function = teaY_compile(T, module, source);
     if(function == NULL)
         return TEA_COMPILE_ERROR;
 
@@ -123,7 +123,11 @@ TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, c
     TeaObjectClosure* closure = teaO_new_closure(T, function);
     teaV_pop(T, 1);
 
-    teaV_push(T, OBJECT_VAL(closure));
+    teaV_push(T, OBJECT_VAL(closure));*/
 
-    return teaD_pcall(T, OBJECT_VAL(closure), 0);
+    int status = teaD_protected_compiler(T, module, source);
+    if(status != 0)
+        return TEA_COMPILE_ERROR;
+
+    return teaD_pcall(T, T->top[-1], 0);
 }

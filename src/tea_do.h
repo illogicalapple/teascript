@@ -21,4 +21,6 @@ void teaD_throw(TeaState* T, int code);
 
 int teaD_runprotected(TeaState* T, TeaPFunction f, void* ud);
 
+int teaD_protected_compiler(TeaState* T, TeaObjectModule* module, const char* source);
+
 #endif

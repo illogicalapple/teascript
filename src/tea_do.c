@@ -4,6 +4,7 @@
 #include "tea_do.h"
 #include "tea_vm.h"
 #include "tea_debug.h"
+#include "tea_compiler.h"
 
 struct tea_longjmp
 {
@@ -198,7 +199,7 @@ bool teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
     return false;
 }
 
-struct Call
+struct PCall
 {
     TeaValue func;
     int arg_count;
@@ -206,7 +207,7 @@ struct Call
 
 static void f_call(TeaState* T, void* ud)
 {
-    struct Call* c = (struct Call*)ud;
+    struct PCall* c = (struct PCall*)ud;
     teaD_call(T, c->func, c->arg_count);
 }
 
@@ -229,7 +230,7 @@ void teaD_call(TeaState* T, TeaValue func, int arg_count)
 int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
 {
     int status;
-    struct Call c;
+    struct PCall c;
     c.func = func;
     c.arg_count = arg_count;
     status = teaD_runprotected(T, f_call, &c);
@@ -266,4 +267,33 @@ int teaD_runprotected(TeaState* T, TeaPFunction f, void* ud)
         (*f)(T, ud);
     T->error_jump = tj.previous;
     return tj.status;
+}
+
+struct PCompiler
+{
+    TeaObjectModule* module;
+    const char* source;
+};
+
+static void f_compiler(TeaState* T, void* ud)
+{
+    struct PCompiler* c;
+    TeaObjectFunction* function;
+    TeaObjectClosure* closure;
+
+    c = (struct PCompiler*)(ud);
+
+    function = teaY_compile(T, c->module, c->source);
+    closure = teaO_new_closure(T, function);
+    teaV_push(T, OBJECT_VAL(closure));
+}
+
+int teaD_protected_compiler(TeaState* T, TeaObjectModule* module, const char* source)
+{
+    int status;
+    struct PCompiler c;
+    c.module = module;
+    c.source = source;
+    status = teaD_runprotected(T, f_compiler, &c);
+    return status;
 }

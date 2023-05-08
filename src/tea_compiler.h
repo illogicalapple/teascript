@@ -51,8 +51,6 @@ typedef struct
     TeaScanner scanner;
     TeaToken current;
     TeaToken previous;
-    bool had_error;
-    bool panic_mode;
     TeaObjectModule* module;
 } TeaParser;
 

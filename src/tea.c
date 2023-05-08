@@ -100,9 +100,15 @@ static void run_file(TeaState* T, const char* path)
     free(source);
 
     if(result == TEA_COMPILE_ERROR)
+    {
+        tea_close(T);
         exit(65);
+    }
     if(result == TEA_RUNTIME_ERROR)
+    {
+        tea_close(T);
         exit(70);
+    }
 }
 
 int main(int argc, const char* argv[])
