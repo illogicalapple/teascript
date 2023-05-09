@@ -13,7 +13,7 @@ void teaD_ensure_callframe(TeaState* T);
 
 void teaD_ensure_stack(TeaState* T, int needed);
 
-bool teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count);
+void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count);
 void teaD_call(TeaState* T, TeaValue func, int arg_count);
 int teaD_pcall(TeaState* T, TeaValue func, int arg_count);
 

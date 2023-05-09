@@ -61,7 +61,7 @@ void teaD_ensure_stack(TeaState* T, int needed)
 	}
 }
 
-static bool call(TeaState* T, TeaObjectClosure* closure, int arg_count)
+static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
 {
     if(arg_count < closure->function->arity)
     {
@@ -75,7 +75,6 @@ static bool call(TeaState* T, TeaObjectClosure* closure, int arg_count)
         else
         {
             teaV_runtime_error(T, "Expected %d arguments, but got %d", closure->function->arity, arg_count);
-            return false;
         }
     }
     else if(arg_count > closure->function->arity + closure->function->arity_optional)
@@ -99,7 +98,6 @@ static bool call(TeaState* T, TeaObjectClosure* closure, int arg_count)
         else
         {
             teaV_runtime_error(T, "Expected %d arguments, but got %d", closure->function->arity + closure->function->arity_optional, arg_count);
-            return false;
         }
     }
     else if(closure->function->variadic)
@@ -115,7 +113,6 @@ static bool call(TeaState* T, TeaObjectClosure* closure, int arg_count)
     if(T->frame_count == 1000)
     {
         teaV_runtime_error(T, "Stack overflow");
-        return false;
     }
 
     teaD_ensure_callframe(T);
@@ -125,11 +122,9 @@ static bool call(TeaState* T, TeaObjectClosure* closure, int arg_count)
 	teaD_ensure_stack(T, needed);
 
     teaD_append_callframe(T, closure, T->top - arg_count - 1);
-
-    return true;
 }
 
-static bool callc(TeaState* T, TeaObjectNative* native, int arg_count)
+static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 {
     teaD_ensure_callframe(T);
 
@@ -155,11 +150,9 @@ static bool callc(TeaState* T, TeaObjectNative* native, int arg_count)
     T->top = frame->slots;
 
     teaV_push(T, res);
-
-    return true;
 }
 
-bool teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
+void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
 {
     if(IS_OBJECT(callee))
     {
@@ -169,7 +162,8 @@ bool teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
             {
                 TeaObjectBoundMethod* bound = AS_BOUND_METHOD(callee);
                 T->top[-arg_count - 1] = bound->receiver;
-                return teaD_call_value(T, bound->method, arg_count);
+                teaD_call_value(T, bound->method, arg_count);
+                return;
             }
             case OBJ_CLASS:
             {
@@ -177,26 +171,26 @@ bool teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
                 T->top[-arg_count - 1] = OBJECT_VAL(teaO_new_instance(T, klass));
                 if(!IS_NULL(klass->constructor)) 
                 {
-                    return teaD_call_value(T, klass->constructor, arg_count);
+                    teaD_call_value(T, klass->constructor, arg_count);
+                    return;
                 }
                 else if(arg_count != 0)
                 {
                     teaV_runtime_error(T, "Expected 0 arguments but got %d", arg_count);
-                    return false;
                 }
-                return true;
             }
             case OBJ_CLOSURE:
-                return call(T, AS_CLOSURE(callee), arg_count);
+                call(T, AS_CLOSURE(callee), arg_count);
+                return;
             case OBJ_NATIVE:
-                return callc(T, AS_NATIVE(callee), arg_count);
+                callc(T, AS_NATIVE(callee), arg_count);
+                return;
             default:
                 break; // Non-callable object type
         }
     }
 
     teaV_runtime_error(T, "%s is not callable", teaL_type(callee));
-    return false;
 }
 
 struct PCall
