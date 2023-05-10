@@ -179,12 +179,12 @@ void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
                 if(!IS_NULL(klass->constructor)) 
                 {
                     teaD_call_value(T, klass->constructor, arg_count);
-                    return;
                 }
                 else if(arg_count != 0)
                 {
                     teaV_runtime_error(T, "Expected 0 arguments but got %d", arg_count);
                 }
+                return;
             }
             case OBJ_CLOSURE:
                 call(T, AS_CLOSURE(callee), arg_count);
@@ -267,8 +267,8 @@ void teaD_throw(TeaState* T, int code)
     }
     else
     {
-        puts("panic");
-        exit(1);
+        T->panic(T);
+        exit(EXIT_FAILURE);
     }
 }
 

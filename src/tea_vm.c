@@ -648,7 +648,7 @@ static void define_method(TeaState* T, TeaObjectString* name)
     teaV_pop(T, 1);
 }
 
-static void concatenate(TeaState* T)
+static void teaV_concat(TeaState* T)
 {
     TeaObjectString* b = AS_STRING(teaV_peek(T, 0));
     TeaObjectString* a = AS_STRING(teaV_peek(T, 1));
@@ -1354,7 +1354,7 @@ void teaV_run(TeaState* T)
             {
                 if(IS_STRING(PEEK(0)) && IS_STRING(PEEK(1)))
                 {
-                    concatenate(T);
+                    teaV_concat(T);
                 }
                 else if(IS_LIST(PEEK(0)) && IS_LIST(PEEK(1)))
                 {

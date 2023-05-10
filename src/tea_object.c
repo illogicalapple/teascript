@@ -37,24 +37,6 @@ TeaObjectNative* teaO_new_native(TeaState* T, TeaNativeType type, TeaCFunction f
     return native;
 }
 
-TeaObjectUserdata* teaO_new_userdata(TeaState* T, size_t size)
-{
-    TeaObjectUserdata* userdata = ALLOCATE_OBJECT(T, TeaObjectUserdata, OBJ_USERDATA);
-    if(size > 0)
-    {
-        userdata->data = teaM_reallocate(T, NULL, 0, size);
-    }
-    else
-    {
-        userdata->data = NULL;
-    }
-
-    userdata->size = size;
-    userdata->fn = NULL;
-
-    return userdata;
-}
-
 TeaObjectRange* teaO_new_range(TeaState* T, double start, double end, double step)
 {
     TeaObjectRange* range = ALLOCATE_OBJECT(T, TeaObjectRange, OBJ_RANGE);
@@ -649,8 +631,6 @@ TeaObjectString* teaO_tostring(TeaState* T, TeaValue value)
     {
         case OBJ_FILE:
             return teaO_copy_string(T, "<file>", 6);
-        case OBJ_USERDATA:
-            return teaO_copy_string(T, "<userdata>", 10);
         case OBJ_BOUND_METHOD:
             return teaO_copy_string(T, "<method>", 8);
         case OBJ_NATIVE:
@@ -771,8 +751,6 @@ const char* teaO_type(TeaValue a)
 {
     switch(OBJECT_TYPE(a))
     {
-        case OBJ_USERDATA:
-            return "userdata";
         case OBJ_FILE:
             return "file";
         case OBJ_RANGE:

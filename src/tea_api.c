@@ -7,6 +7,30 @@
 #include "tea_vm.h"
 #include "tea_do.h"
 
+static TeaValue index2value(TeaState* T, int index)
+{
+    if(index >= 0)
+    {
+        return T->base[index];
+    }
+    else
+    {
+        return T->top[index];
+    }
+}
+
+static TeaValue* index2addr(TeaState* T, int index)
+{
+    if(index >= 0)
+    {
+        return T->base + index;
+    }
+    else
+    {
+        return T->top + index;
+    }
+}
+
 TEA_API void tea_set_repl(TeaState* T, int b)
 {
     T->repl = b;
@@ -27,6 +51,13 @@ TEA_API const char** tea_get_argv(TeaState* T, int* argc)
     return T->argv;
 }
 
+TEA_API TeaCFunction tea_atpanic(TeaState* T, TeaCFunction panicf)
+{
+    TeaCFunction old = T->panic;
+    T->panic = panicf;
+    return old;
+}
+
 TEA_API int tea_get_top(TeaState* T)
 {
     return (int)(T->top - T->base);
@@ -44,71 +75,32 @@ TEA_API void tea_set_top(TeaState* T, int index)
     }
 }
 
-static TeaValue index2value(TeaState* T, int index)
+TEA_API void tea_remove(TeaState* T, int index)
 {
-    if(index >= 0)
-    {
-        return T->base[index];
-    }
-    else
-    {
-        return T->top[index];
-    }
+    TeaValue* p = index2addr(T, index);
+    while(++p < T->top)
+        *(p - 1) = *p;
+    T->top--;
 }
 
-static void set_class(TeaState* T, const TeaClass* k)
+TEA_API void tea_insert(TeaState* T, int index)
 {
-    for(; k->name != NULL; k++)
-    {
-        if(k->fn == NULL)
-        {
-            tea_push_null(T);
-        }
-        else
-        {
-            if(strcmp(k->type, "method") == 0)
-            {
-                teaV_push(T, OBJECT_VAL(teaO_new_native(T, NATIVE_METHOD, k->fn)));
-            }
-            else if(strcmp(k->type, "property") == 0)
-            {
-                teaV_push(T, OBJECT_VAL(teaO_new_native(T, NATIVE_PROPERTY, k->fn)));
-            }
-        }
-        tea_set_key(T, 0, k->name);
-    }
+    TeaValue* p = index2addr(T, index);
+    for(TeaValue* q = T->top; q > p; q--)
+        *q = *(q - 1);
+    *p = *(T->top);
 }
 
-static void set_module(TeaState* T, const TeaModule* m)
+TEA_API void tea_replace(TeaState* T, int index)
 {
-    for(; m->name != NULL; m++)
-    {
-        if(m->fn == NULL)
-        {
-            tea_push_null(T);
-        }
-        else
-        {
-            tea_push_cfunction(T, m->fn);
-        }
-        tea_set_key(T, 0, m->name);
-    }
+    TeaValue* v = index2addr(T, index);
+    *v = *(T->top - 1);
+    T->top--;
 }
 
-static void set_globals(TeaState* T, const TeaReg* reg)
+TEA_API void tea_push_value(TeaState* T, int index)
 {
-    for(; reg->name != NULL; reg++)
-    {
-        if(reg->fn == NULL)
-        {
-            tea_push_null(T);
-        }
-        else
-        {
-            tea_push_cfunction(T, reg->fn);
-        }
-        tea_set_global(T, reg->name);
-    }
+    teaV_push(T, index2value(T, index));
 }
 
 TEA_API int tea_type(TeaState* T, int index)
@@ -215,11 +207,6 @@ TEA_API void tea_pop(TeaState* T, int n)
     T->top -= n;
 }
 
-TEA_API void tea_push_value(TeaState* T, int index)
-{
-    teaV_push(T, index2value(T, index));
-}
-
 TEA_API void tea_push_null(TeaState* T)
 {
     teaV_push(T, NULL_VAL);
@@ -295,12 +282,52 @@ TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn)
     teaV_push(T, OBJECT_VAL(native));
 }
 
+
+static void set_class(TeaState* T, const TeaClass* k)
+{
+    for(; k->name != NULL; k++)
+    {
+        if(k->fn == NULL)
+        {
+            tea_push_null(T);
+        }
+        else
+        {
+            if(strcmp(k->type, "method") == 0)
+            {
+                teaV_push(T, OBJECT_VAL(teaO_new_native(T, NATIVE_METHOD, k->fn)));
+            }
+            else if(strcmp(k->type, "property") == 0)
+            {
+                teaV_push(T, OBJECT_VAL(teaO_new_native(T, NATIVE_PROPERTY, k->fn)));
+            }
+        }
+        tea_set_key(T, 0, k->name);
+    }
+}
+
 TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* klass)
 {
     teaV_push(T, OBJECT_VAL(teaO_new_class(T, teaO_new_string(T, name), NULL)));
     if(klass != NULL)
     {
         set_class(T, klass);
+    }
+}
+
+static void set_module(TeaState* T, const TeaModule* m)
+{
+    for(; m->name != NULL; m++)
+    {
+        if(m->fn == NULL)
+        {
+            tea_push_null(T);
+        }
+        else
+        {
+            tea_push_cfunction(T, m->fn);
+        }
+        tea_set_key(T, 0, m->name);
     }
 }
 
@@ -444,6 +471,22 @@ TEA_API void tea_set_global(TeaState* T, const char* name)
     tea_push_string(T, name);
     teaT_set(T, &T->globals, AS_STRING(teaV_peek(T, 0)), value);
     tea_pop(T, 2);
+}
+
+static void set_globals(TeaState* T, const TeaReg* reg)
+{
+    for(; reg->name != NULL; reg++)
+    {
+        if(reg->fn == NULL)
+        {
+            tea_push_null(T);
+        }
+        else
+        {
+            tea_push_cfunction(T, reg->fn);
+        }
+        tea_set_global(T, reg->name);
+    }
 }
 
 TEA_API void tea_set_funcs(TeaState* T, const TeaReg* reg)

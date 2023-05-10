@@ -16,7 +16,6 @@
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->type)
 
 #define IS_NATIVE(value) teaO_is_object_type(value, OBJ_NATIVE)
-#define IS_USERDATA(value) teaO_is_object_type(value, OBJ_USERDATA)
 #define IS_RANGE(value) teaO_is_object_type(value, OBJ_RANGE)
 #define IS_FILE(value) teaO_is_object_type(value, OBJ_FILE)
 #define IS_MODULE(value) teaO_is_object_type(value, OBJ_MODULE)
@@ -30,7 +29,6 @@
 #define IS_STRING(value) teaO_is_object_type(value, OBJ_STRING)
 
 #define AS_NATIVE(value) ((TeaObjectNative*)AS_OBJECT(value))
-#define AS_USERDATA(value) ((TeaObjectUserdata*)AS_OBJECT(value))
 #define AS_RANGE(value) ((TeaObjectRange*)AS_OBJECT(value))
 #define AS_FILE(value) ((TeaObjectFile*)AS_OBJECT(value))
 #define AS_MODULE(value) ((TeaObjectModule*)AS_OBJECT(value))
@@ -65,7 +63,6 @@ typedef enum
     OBJ_LIST,
     OBJ_MAP,
     OBJ_FILE,
-    OBJ_USERDATA,
 } TeaObjectType;
 
 typedef enum
@@ -206,17 +203,6 @@ typedef struct
     TeaValue method;
 } TeaObjectBoundMethod;
 
-typedef void (*TeaFreeFunction)(TeaState* T, TeaObjectUserdata* data, bool mark);
-
-typedef struct TeaObjectUserdata
-{
-    TeaObject obj;
-    void* data;
-    size_t size;
-    TeaFreeFunction fn;
-} TeaObjectUserdata;
-
-TeaObjectUserdata* teaO_new_userdata(TeaState* T, size_t size);
 TeaObjectBoundMethod* teaO_new_bound_method(TeaState* T, TeaValue receiver, TeaValue method);
 TeaObjectInstance* teaO_new_instance(TeaState* T, TeaObjectClass* klass);
 TeaObjectClass* teaO_new_class(TeaState* T, TeaObjectString* name, TeaObjectClass* superclass);

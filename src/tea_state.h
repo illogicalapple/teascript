@@ -53,6 +53,7 @@ typedef struct TeaState
     int gray_capacity;
     TeaObject** gray_stack;
     struct tea_longjmp* error_jump;
+    TeaCFunction panic;
     int argc;
     const char** argv;
     bool repl;

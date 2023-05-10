@@ -37,6 +37,11 @@ static void init_stack(TeaState* T)
     T->open_upvalues = NULL;
 }
 
+static void default_panic(TeaState* T)
+{
+    puts("panic");
+}
+
 TEA_API TeaState* tea_open()
 {
     TeaState* T = (TeaState*)malloc(sizeof(*T));
@@ -48,6 +53,7 @@ TEA_API TeaState* tea_open()
     T->bytes_allocated = 0;
     T->next_gc = 1024 * 1024;
     init_stack(T);
+    T->panic = default_panic;
     T->gray_stack = NULL;
     T->gray_count = 0;
     T->gray_capacity = 0;

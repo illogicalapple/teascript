@@ -14,7 +14,6 @@ typedef struct TeaCompiler TeaCompiler;
 typedef struct TeaObject TeaObject;
 typedef struct TeaObjectString TeaObjectString;
 typedef struct TeaObjectFile TeaObjectFile;
-typedef struct TeaObjectUserdata TeaObjectUserdata;
 
 #ifdef TEA_NAN_TAGGING
 

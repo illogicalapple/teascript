@@ -30,10 +30,6 @@ typedef struct TeaState TeaState;
 
 typedef void (*TeaCFunction)(TeaState* T);
 
-//typedef void* (*TeaReallocateFn)(void* memory, size_t new_size);
-
-//typedef const char* (*TeaResolveModuleFn)(TeaState* T, const char* importer, const char* name);
-
 typedef struct TeaReg
 {
     const char* name;
@@ -72,20 +68,23 @@ typedef enum
     TEA_TYPE_LIST,
     TEA_TYPE_MAP,
     TEA_TYPE_FILE,
-    TEA_TYPE_USERDATA,
 } TeaType;
 
-//TEA_API TeaState* tea_new_state(TeaState* T, TeaReallocateFn* realloc_fn);
 TEA_API TeaState* tea_open();
 TEA_API void tea_close(TeaState* T);
 TEA_API void tea_set_argv(TeaState* T, int argc, const char** argv);
 TEA_API const char** tea_get_argv(TeaState* T, int* argc);
 
+TEA_API TeaCFunction tea_atpanic(TeaState* T, TeaCFunction panicf);
+
 TEA_API void tea_set_repl(TeaState* T, int b);
 
 TEA_API int tea_get_top(TeaState* T);
 TEA_API void tea_set_top(TeaState* T, int index);
-// TEA_API void tea_remove(TeaState* T, int index);
+TEA_API void tea_push_value(TeaState* T, int index);
+TEA_API void tea_remove(TeaState* T, int index);
+TEA_API void tea_insert(TeaState* T, int index);
+TEA_API void tea_replace(TeaState* T, int index);
 
 TEA_API int tea_type(TeaState* T, int index);
 TEA_API const char* tea_type_name(TeaState* T, int index);
@@ -94,7 +93,6 @@ TEA_API double tea_get_number(TeaState* T, int index);
 TEA_API int tea_get_bool(TeaState* T, int index);
 TEA_API void tea_get_range(TeaState* T, int index, double* start, double* end, double* step);
 TEA_API const char* tea_get_lstring(TeaState* T, int index, int* len);
-//TEA_API void* tea_get_userdata(TeaState* T, int index);
 
 TEA_API int tea_falsey(TeaState* T, int index);
 TEA_API double tea_to_numberx(TeaState* T, int index, int* is_num);
@@ -104,7 +102,6 @@ TEA_API int tea_equals(TeaState* T, int index1, int index2);
 
 TEA_API void tea_pop(TeaState* T, int n);
 
-TEA_API void tea_push_value(TeaState* T, int index);
 TEA_API void tea_push_null(TeaState* T);
 TEA_API void tea_push_bool(TeaState* T, int b);
 TEA_API void tea_push_number(TeaState* T, double n);
@@ -113,14 +110,12 @@ TEA_API const char* tea_push_string(TeaState* T, const char* s);
 TEA_API const char* tea_push_fstring(TeaState* T, const char* fmt, ...);
 TEA_API void tea_push_range(TeaState* T, double start, double end, double step);
 TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn);
-//TEA_API void tea_push_userdata(TeaState* T, void* data);
 
 TEA_API void tea_new_list(TeaState* T);
 TEA_API void tea_new_map(TeaState* T);
 
 TEA_API void tea_create_class(TeaState* T, const char* name, const TeaClass* klass);
 TEA_API void tea_create_module(TeaState* T, const char* name, const TeaModule* module);
-//TEA_API void* tea_create_userdata(TeaState* T, size_t size);
 
 TEA_API int tea_len(TeaState* T, int index);
 
@@ -131,16 +126,11 @@ TEA_API void tea_set_item(TeaState* T, int list, int index);
 TEA_API void tea_get_field(TeaState* T, int map);
 TEA_API void tea_set_field(TeaState* T, int map);
 
-//TEA_API void tea_get_key(TeaState* T, int map, const char* key);
 TEA_API void tea_set_key(TeaState* T, int map, const char* key);
 
 TEA_API int tea_get_global(TeaState* T, const char* name);
 TEA_API void tea_set_global(TeaState* T, const char* name);
 TEA_API void tea_set_funcs(TeaState* T, const TeaReg* reg);
-
-//TEA_API void tea_get_variable(TeaState* T, const char* module, const char* name);
-//TEA_API void tea_set_variable(TeaState* T, const char* module, const char* name);
-//TEA_API int tea_has_module(TeaState* T, const char* module, const char* name);
 
 TEA_API int tea_check_type(TeaState* T, int index, int type);
 
@@ -153,7 +143,6 @@ TEA_API void tea_collect_garbage(TeaState* T);
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source);
 
 TEA_API void tea_call(TeaState* T, int n);
-//TEA_API TeaInterpreterResult tea_pcall(TeaState* T, int n);
 
 TEA_API void tea_error(TeaState* T, const char* fmt, ...);
 

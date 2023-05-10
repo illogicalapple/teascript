@@ -64,15 +64,6 @@ static void blacken_object(TeaState* T, TeaObject* object)
             teaC_mark_object(T, (TeaObject*)file->type);
             break;
         }
-        case OBJ_USERDATA:
-        {
-            TeaObjectUserdata* userdata = (TeaObjectUserdata*)object;
-            if(userdata->fn != NULL)
-            {
-                userdata->fn(T, userdata, true);
-            }
-            break;
-        }
         case OBJ_MODULE:
         {
             TeaObjectModule* module = (TeaObjectModule*)object;
@@ -241,23 +232,6 @@ static void free_object(TeaState* T, TeaObject* object)
         case OBJ_UPVALUE:
         {
             TEA_FREE(T, TeaObjectUpvalue, object);
-            break;
-        }
-        case OBJ_USERDATA:
-        {
-            TeaObjectUserdata* data = (TeaObjectUserdata*)object;
-
-            if(data->fn != NULL)
-            {
-                data->fn(T, data, false);
-            }
-
-            if(data->size > 0)
-            {
-                teaM_reallocate(T, data->data, data->size, 0);
-            }
-
-            TEA_FREE(T, TeaObjectUserdata, object);
             break;
         }
         case OBJ_NATIVE:
