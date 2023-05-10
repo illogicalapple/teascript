@@ -503,7 +503,7 @@ TEA_API int tea_check_type(TeaState* T, int index, int type)
 {
     if(tea_type(T, index) != type)
     {
-        expected(T, "", index);
+        expected(T, teaL_typenames[type], index);
     }
 }
 

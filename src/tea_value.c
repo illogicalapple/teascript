@@ -14,6 +14,11 @@
 DEFINE_ARRAY(TeaValueArray, TeaValue, value_array)
 DEFINE_ARRAY(TeaBytes, uint8_t, bytes)
 
+const char* const teaL_typenames[] = {
+    "null", "number", "bool", 
+    "string", "range", "function", "module", "class", "instance", "list", "map", "file"
+};
+
 const char* teaL_type(TeaValue a)
 {
 #ifdef TEA_NAN_TAGGING

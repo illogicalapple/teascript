@@ -117,4 +117,6 @@ double teaL_tonumber(TeaValue value, int* x);
 TeaObjectString* teaL_tostring(TeaState* T, TeaValue value);
 TeaObjectString* teaL_number_tostring(TeaState* T, double number);
 
+extern const char *const teaL_typenames[];
+
 #endif
