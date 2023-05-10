@@ -213,11 +213,7 @@ static void file_close(TeaState* T)
     int count = tea_get_top(T);
     tea_ensure_min_args(T, count, 1);
 
-    TeaObjectFile* file = AS_FILE(T->base[0]);
-    if(!file->is_open)
-    {
-        tea_error(T, "File already closed");
-    }
+    TeaObjectFile* file = get_file(T);
 
     if(file->is_open == -1)
     {

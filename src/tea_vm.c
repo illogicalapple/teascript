@@ -51,7 +51,7 @@ static void invoke_from_class(TeaState* T, TeaObjectClass* klass, TeaObjectStrin
     TeaValue method;
     if(!teaT_get(&klass->methods, name, &method))
     {
-        teaV_runtime_error(T, "Undefined property '%s'", name->chars);
+        teaV_runtime_error(T, "Undefined method '%s'", name->chars);
     }
 
     teaD_call_value(T, method, arg_count);
@@ -59,79 +59,79 @@ static void invoke_from_class(TeaState* T, TeaObjectClass* klass, TeaObjectStrin
 
 static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int arg_count)
 {
-    if(IS_OBJECT(receiver))
+    if(!IS_OBJECT(receiver))
     {
-        switch(OBJECT_TYPE(receiver))
+        teaV_runtime_error(T, "Only objects have methods, %s given", teaL_type(receiver));
+    }
+
+    switch(OBJECT_TYPE(receiver))
+    {
+        case OBJ_MODULE:
         {
-            case OBJ_MODULE:
-            {
-                TeaObjectModule* module = AS_MODULE(receiver);
+            TeaObjectModule* module = AS_MODULE(receiver);
 
+            TeaValue value;
+            if(teaT_get(&module->values, name, &value)) 
+            {
+                teaD_call_value(T, value, arg_count);
+                return;
+            }
+
+            teaV_runtime_error(T, "Undefined variable '%s' in '%s' module", name->chars, module->name->chars);
+        }
+        case OBJ_INSTANCE:
+        {
+            TeaObjectInstance* instance = AS_INSTANCE(receiver);
+
+            TeaValue value;
+            if(teaT_get(&instance->fields, name, &value))
+            {
+                T->top[-arg_count - 1] = value;
+                teaD_call_value(T, value, arg_count);
+                return;
+            }
+
+            if(teaT_get(&instance->klass->methods, name, &value)) 
+            {
+                teaD_call_value(T, value, arg_count);
+                return;
+            }
+
+            teaV_runtime_error(T, "Undefined property '%s'", name->chars);
+        }
+        case OBJ_CLASS:
+        {
+            TeaObjectClass* klass = AS_CLASS(receiver);
+            TeaValue method;
+            if(teaT_get(&klass->methods, name, &method)) 
+            {
+                if(IS_NATIVE(method) || AS_CLOSURE(method)->function->type != TYPE_STATIC) 
+                {
+                    teaV_runtime_error(T, "'%s' is not static. Only static methods can be invoked directly from a class", name->chars);
+                }
+
+                teaD_call_value(T, method, arg_count);
+                return;
+            }
+
+            teaV_runtime_error(T, "Undefined method '%s'", name->chars);
+        }
+        default:
+        {
+            TeaObjectClass* type = teaE_get_class(T, receiver);
+            if(type != NULL)
+            {
                 TeaValue value;
-                if(teaT_get(&module->values, name, &value)) 
+                if(teaT_get(&type->methods, name, &value)) 
                 {
                     teaD_call_value(T, value, arg_count);
                     return;
                 }
 
-                teaV_runtime_error(T, "Undefined property '%s' in '%s' module", name->chars, module->name->chars);
-            }
-            case OBJ_INSTANCE:
-            {
-                TeaObjectInstance* instance = AS_INSTANCE(receiver);
-
-                TeaValue value;
-                if(teaT_get(&instance->fields, name, &value))
-                {
-                    T->top[-arg_count - 1] = value;
-                    teaD_call_value(T, value, arg_count);
-                    return;
-                }
-
-                if(teaT_get(&instance->klass->methods, name, &value)) 
-                {
-                    teaD_call_value(T, value, arg_count);
-                    return;
-                }
-
-                teaV_runtime_error(T, "Undefined property '%s'", name->chars);
-            }
-            case OBJ_CLASS:
-            {
-                TeaObjectClass* klass = AS_CLASS(receiver);
-                TeaValue method;
-                if(teaT_get(&klass->methods, name, &method)) 
-                {
-                    if(IS_NATIVE(method) || AS_CLOSURE(method)->function->type != TYPE_STATIC) 
-                    {
-                        teaV_runtime_error(T, "'%s' is not static. Only static methods can be invoked directly from a class", name->chars);
-                    }
-
-                    teaD_call_value(T, method, arg_count);
-                    return;
-                }
-
-                teaV_runtime_error(T, "Undefined property '%s'", name->chars);
-            }
-            default:
-            {
-                TeaObjectClass* type = teaE_get_class(T, receiver);
-                if(type != NULL)
-                {
-                    TeaValue value;
-                    if(teaT_get(&type->methods, name, &value)) 
-                    {
-                        teaD_call_value(T, value, arg_count);
-                        return;
-                    }
-
-                    teaV_runtime_error(T, "%s has no method %s()", teaO_type(receiver), name->chars);
-                }
+                teaV_runtime_error(T, "%s has no method %s()", teaO_type(receiver), name->chars);
             }
         }
     }
-
-    teaV_runtime_error(T, "Only objects have methods, %s given", teaL_type(receiver));
 }
 
 static void bind_method(TeaState* T, TeaObjectClass* klass, TeaObjectString* name)
@@ -139,7 +139,7 @@ static void bind_method(TeaState* T, TeaObjectClass* klass, TeaObjectString* nam
     TeaValue method;
     if(!teaT_get(&klass->methods, name, &method))
     {
-        teaV_runtime_error(T, "Undefined property '%s'", name->chars);
+        teaV_runtime_error(T, "Undefined method '%s'", name->chars);
     }
 
     TeaObjectBoundMethod* bound = teaO_new_bound_method(T, teaV_peek(T, 0), method);
@@ -237,111 +237,113 @@ static void in_(TeaState* T, TeaValue object, TeaValue value)
 
 static void subscript(TeaState* T, TeaValue index_value, TeaValue subscript_value)
 {
-    if(IS_OBJECT(subscript_value))
+    if(!IS_OBJECT(subscript_value))
     {
-        switch(OBJECT_TYPE(subscript_value))
+        teaV_runtime_error(T, "%s is not subscriptable", teaL_type(subscript_value));
+    }
+
+    switch(OBJECT_TYPE(subscript_value))
+    {
+        case OBJ_RANGE:
         {
-            case OBJ_RANGE:
+            if(!IS_NUMBER(index_value)) 
             {
-                if(!IS_NUMBER(index_value)) 
-                {
-                    teaV_runtime_error(T, "Range index must be a number");
-                }
-
-                TeaObjectRange* range = AS_RANGE(subscript_value);
-                double index = AS_NUMBER(index_value);
-
-                // Calculate the length of the range
-                double len = (range->end - range->start) / range->step;
-
-                // Allow negative indexes
-                if(index < 0)
-                {
-                    index = len + index;
-                }
-
-                if(index >= 0 && index < len) 
-                {
-                    teaV_pop(T, 2);
-                    teaV_push(T, NUMBER_VAL(range->start + index * range->step));
-                    return;
-                }
-
-                teaV_runtime_error(T, "Range index out of bounds");
+                teaV_runtime_error(T, "Range index must be a number");
             }
-            case OBJ_LIST:
+
+            TeaObjectRange* range = AS_RANGE(subscript_value);
+            double index = AS_NUMBER(index_value);
+
+            // Calculate the length of the range
+            double len = (range->end - range->start) / range->step;
+
+            // Allow negative indexes
+            if(index < 0)
             {
-                if(!IS_NUMBER(index_value)) 
-                {
-                    teaV_runtime_error(T, "List index must be a number");
-                }
-
-                TeaObjectList* list = AS_LIST(subscript_value);
-                int index = AS_NUMBER(index_value);
-
-                // Allow negative indexes
-                if(index < 0)
-                {
-                    index = list->items.count + index;
-                }
-
-                if(index >= 0 && index < list->items.count) 
-                {
-                    teaV_pop(T, 2);
-                    teaV_push(T, list->items.values[index]);
-                    return;
-                }
-
-                teaV_runtime_error(T, "List index out of bounds");
+                index = len + index;
             }
-            case OBJ_MAP:
-            {
-                TeaObjectMap* map = AS_MAP(subscript_value);
-                if(!teaO_is_valid_key(index_value))
-                {
-                    teaV_runtime_error(T, "Map key isn't hashable");
-                }
 
-                TeaValue value;
+            if(index >= 0 && index < len) 
+            {
                 teaV_pop(T, 2);
-                if(teaO_map_get(map, index_value, &value))
-                {
-                    teaV_push(T, value);
-                    return;
-                }
-
-                teaV_runtime_error(T, "Key does not exist within map");
+                teaV_push(T, NUMBER_VAL(range->start + index * range->step));
+                return;
             }
-            case OBJ_STRING:
-            {
-                if(!IS_NUMBER(index_value)) 
-                {
-                    teaV_runtime_error(T, "String index must be a number (got %s)", teaL_type(index_value));
-                }
 
-                TeaObjectString* string = AS_STRING(subscript_value);
-                int index = AS_NUMBER(index_value);
-                int real_length = teaU_length(string);
-
-                // Allow negative indexes
-                if(index < 0)
-                {
-                    index = real_length + index;
-                }
-
-                if(index >= 0 && index < string->length)
-                {
-                    teaV_pop(T, 2);
-                    TeaObjectString* c = teaU_code_point_at(T, string, teaU_char_offset(string->chars, index));
-                    teaV_push(T, OBJECT_VAL(c));
-                    return;
-                }
-
-                teaV_runtime_error(T, "String index out of bounds");
-            }
-            default:
-                break;
+            teaV_runtime_error(T, "Range index out of bounds");
         }
+        case OBJ_LIST:
+        {
+            if(!IS_NUMBER(index_value)) 
+            {
+                teaV_runtime_error(T, "List index must be a number");
+            }
+
+            TeaObjectList* list = AS_LIST(subscript_value);
+            int index = AS_NUMBER(index_value);
+
+            // Allow negative indexes
+            if(index < 0)
+            {
+                index = list->items.count + index;
+            }
+
+            if(index >= 0 && index < list->items.count) 
+            {
+                teaV_pop(T, 2);
+                teaV_push(T, list->items.values[index]);
+                return;
+            }
+
+            teaV_runtime_error(T, "List index out of bounds");
+        }
+        case OBJ_MAP:
+        {
+            TeaObjectMap* map = AS_MAP(subscript_value);
+            if(!teaO_is_valid_key(index_value))
+            {
+                teaV_runtime_error(T, "Map key isn't hashable");
+            }
+
+            TeaValue value;
+            teaV_pop(T, 2);
+            if(teaO_map_get(map, index_value, &value))
+            {
+                teaV_push(T, value);
+                return;
+            }
+
+            teaV_runtime_error(T, "Key does not exist within map");
+        }
+        case OBJ_STRING:
+        {
+            if(!IS_NUMBER(index_value)) 
+            {
+                teaV_runtime_error(T, "String index must be a number (got %s)", teaL_type(index_value));
+            }
+
+            TeaObjectString* string = AS_STRING(subscript_value);
+            int index = AS_NUMBER(index_value);
+            int real_length = teaU_length(string);
+
+            // Allow negative indexes
+            if(index < 0)
+            {
+                index = real_length + index;
+            }
+
+            if(index >= 0 && index < string->length)
+            {
+                teaV_pop(T, 2);
+                TeaObjectString* c = teaU_code_point_at(T, string, teaU_char_offset(string->chars, index));
+                teaV_push(T, OBJECT_VAL(c));
+                return;
+            }
+
+            teaV_runtime_error(T, "String index out of bounds");
+        }
+        default:
+            break;
     }
     
     teaV_runtime_error(T, "%s is not subscriptable", teaL_type(subscript_value));
@@ -349,72 +351,74 @@ static void subscript(TeaState* T, TeaValue index_value, TeaValue subscript_valu
 
 static void subscript_store(TeaState* T, TeaValue item_value, TeaValue index_value, TeaValue subscript_value, bool assign)
 {
-    if(IS_OBJECT(subscript_value))
+    if(!IS_OBJECT(subscript_value))
     {
-        switch(OBJECT_TYPE(subscript_value))
+        teaV_runtime_error(T, "%s is not subscriptable", teaL_type(subscript_value));
+    }
+
+    switch(OBJECT_TYPE(subscript_value))
+    {
+        case OBJ_LIST:
         {
-            case OBJ_LIST:
+            if(!IS_NUMBER(index_value)) 
             {
-                if(!IS_NUMBER(index_value)) 
-                {
-                    teaV_runtime_error(T, "List index must be a number (got %s)", teaL_type(index_value));
-                }
-
-                TeaObjectList* list = AS_LIST(subscript_value);
-                int index = AS_NUMBER(index_value);
-
-                if(index < 0)
-                {
-                    index = list->items.count + index;
-                }
-
-                if(index >= 0 && index < list->items.count) 
-                {
-                    if(assign)
-                    {
-                        list->items.values[index] = item_value;
-                        teaV_pop(T, 3);
-                        teaV_push(T, item_value);
-                    }
-                    else
-                    {
-                        T->top[-1] = list->items.values[index];
-                        teaV_push(T, item_value);
-                    }
-                    return;
-                }
-
-                teaV_runtime_error(T, "List index out of bounds");
+                teaV_runtime_error(T, "List index must be a number (got %s)", teaL_type(index_value));
             }
-            case OBJ_MAP:
-            {
-                TeaObjectMap* map = AS_MAP(subscript_value);
-                if(!teaO_is_valid_key(index_value))
-                {
-                    teaV_runtime_error(T, "Map key isn't hashable");
-                }
 
+            TeaObjectList* list = AS_LIST(subscript_value);
+            int index = AS_NUMBER(index_value);
+
+            if(index < 0)
+            {
+                index = list->items.count + index;
+            }
+
+            if(index >= 0 && index < list->items.count) 
+            {
                 if(assign)
                 {
-                    teaO_map_set(T, map, index_value, item_value);
+                    list->items.values[index] = item_value;
                     teaV_pop(T, 3);
                     teaV_push(T, item_value);
                 }
                 else
                 {
-                    TeaValue map_value;
-                    if(!teaO_map_get(map, index_value, &map_value))
-                    {
-                        teaV_runtime_error(T, "Key does not exist within the map");
-                    }
-                    T->top[-1] = map_value;
+                    T->top[-1] = list->items.values[index];
                     teaV_push(T, item_value);
                 }
                 return;
             }
-            default:
-                break;
+
+            teaV_runtime_error(T, "List index out of bounds");
         }
+        case OBJ_MAP:
+        {
+            TeaObjectMap* map = AS_MAP(subscript_value);
+            if(!teaO_is_valid_key(index_value))
+            {
+                teaV_runtime_error(T, "Map key isn't hashable");
+            }
+
+            if(assign)
+            {
+                teaO_map_set(T, map, index_value, item_value);
+                teaV_pop(T, 3);
+                teaV_push(T, item_value);
+            }
+            else
+            {
+                TeaValue map_value;
+                if(!teaO_map_get(map, index_value, &map_value))
+                {
+                    teaV_runtime_error(T, "Key does not exist within the map");
+                }
+                T->top[-1] = map_value;
+                teaV_push(T, item_value);
+            }
+            return;
+        }
+        default:
+            break;
     }
 
     teaV_runtime_error(T, "%s does not support item assignment", teaL_type(subscript_value));
@@ -1815,7 +1819,7 @@ void teaV_run(TeaState* T)
 
                 teaI_import_native_module(T, index);
                 TeaValue module = T->top[-1];
-                printf("::: MOD %s\n", teaL_type(module));
+                //printf("::: MOD %s\n", teaL_type(module));
                 
                 if(IS_CLOSURE(module)) 
                 {
