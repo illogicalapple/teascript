@@ -514,11 +514,11 @@ TEA_API void tea_error(TeaState* T, const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int len;
-    char* s = format(T, fmt, args, &len);
+
+    char msg[1024];
+    int len = vsnprintf(NULL, 0, fmt, args);
+    vsnprintf(msg, len + 1, fmt, args);
     va_end(args);
 
-    teaV_runtime_error(T, s);
-    TEA_FREE_ARRAY(T, char, s, len + 1);
-    teaD_throw(T, TEA_RUNTIME_ERROR);
+    teaV_runtime_error(T, msg);
 }

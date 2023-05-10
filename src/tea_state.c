@@ -19,18 +19,20 @@ static void free_state(TeaState* T)
 
 static void free_stack(TeaState* T)
 {
-    TEA_FREE_ARRAY(T, TeaCallFrame, T->frames, T->frame_capacity);
-    TEA_FREE_ARRAY(T, TeaValue, T->stack, T->stack_capacity);
+    TEA_FREE_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size);
+    TEA_FREE_ARRAY(T, TeaValue, T->stack, T->stack_size);
 }
 
 static void init_stack(TeaState* T)
 {
     T->stack = TEA_ALLOCATE(T, TeaValue, TEA_MIN_SLOTS);
-    T->stack_capacity = TEA_MIN_SLOTS;
+    T->stack_size = TEA_MIN_SLOTS;
     T->base = T->top = T->stack;
-    T->frames = TEA_ALLOCATE(T, TeaCallFrame, 8);
-    T->frame_count = 0;
-    T->frame_capacity = 8;
+    T->stack_last = T->stack + T->stack_size - 1;
+    T->base_ci = TEA_ALLOCATE(T, TeaCallInfo, 8);
+    T->ci_size = 8;
+    T->ci = T->base_ci;
+    T->end_ci = T->base_ci + T->ci_size;
     T->nccalls = 0;
     T->open_upvalues = NULL;
 }

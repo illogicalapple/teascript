@@ -1,6 +1,7 @@
 #include <setjmp.h>
 #include <stdlib.h>
 
+#include "tea_common.h"
 #include "tea_do.h"
 #include "tea_vm.h"
 #include "tea_debug.h"
@@ -15,40 +16,51 @@ struct tea_longjmp
 
 void teaD_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start)
 {
-    TeaCallFrame* frame = &T->frames[T->frame_count++];
+    TeaCallInfo* frame = T->ci++;
     frame->slots = start;
     frame->base = start;
     frame->closure = closure;
+    frame->native = NULL;
     frame->ip = closure->function->chunk.code;
+}
+
+void realloc_ci(TeaState* T, int new_size)
+{
+    TeaCallInfo* oldci = T->base_ci;
+    T->base_ci = (TeaCallInfo*)teaM_reallocate(T, T->base_ci, sizeof(TeaCallInfo) * T->ci_size, sizeof(TeaCallInfo) * new_size);
+    T->ci_size = new_size;
+    T->ci = T->base_ci + (T->ci - oldci);
+    T->end_ci = T->base_ci + T->ci_size;
 }
 
 void teaD_ensure_callframe(TeaState* T)
 {
-    if(T->frame_count + 1 > T->frame_capacity)
+    if(T->ci + 1 > T->end_ci)
     {
-        int max = T->frame_capacity * 2;
-        T->frames = (TeaCallFrame*)teaM_reallocate(T, T->frames, sizeof(TeaCallFrame) * T->frame_capacity, sizeof(TeaCallFrame) * max);
-        T->frame_capacity = max;
+        realloc_ci(T, T->ci_size * 2);
+    }
+    if(T->ci_size > TEA_MAX_CALLS)
+    {
+        teaV_runtime_error(T, "Stack overflow");
     }
 }
 
 void teaD_ensure_stack(TeaState* T, int needed)
 {
-    if(T->stack_capacity >= needed) return;
+    if(T->stack_size >= needed) return;
 
 	int capacity = (int)teaM_closest_power_of_two((int)needed);
 	TeaValue* old_stack = T->stack;
 
-	T->stack = (TeaValue*)teaM_reallocate(T, T->stack, sizeof(TeaValue) * T->stack_capacity, sizeof(TeaValue) * capacity);
-	T->stack_capacity = capacity;
+	T->stack = (TeaValue*)teaM_reallocate(T, T->stack, sizeof(TeaValue) * T->stack_size, sizeof(TeaValue) * capacity);
+	T->stack_size = capacity;
 
 	if(T->stack != old_stack)
     {
-		for(int i = 0; i < T->frame_capacity; i++)
+        for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
         {
-			TeaCallFrame* frame = &T->frames[i];
-			frame->slots = T->stack + (frame->slots - old_stack);
-			frame->base = T->stack + (frame->base - old_stack);
+			ci->slots = T->stack + (ci->slots - old_stack);
+			ci->base = T->stack + (ci->base - old_stack);
 		}
 
 		for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
@@ -110,11 +122,6 @@ static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
         teaV_push(T, OBJECT_VAL(list));
     }
 
-    if(T->frame_count == 1000)
-    {
-        teaV_runtime_error(T, "Stack overflow");
-    }
-
     teaD_ensure_callframe(T);
 
     int stack_size = (int)(T->top - T->stack);
@@ -128,7 +135,7 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 {
     teaD_ensure_callframe(T);
 
-    TeaCallFrame* frame = &T->frames[T->frame_count++];
+    TeaCallInfo* frame = T->ci++;
     frame->closure = NULL;
     frame->ip = NULL;
     frame->native = native;
@@ -144,7 +151,7 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
     
     TeaValue res = T->top[-1];
 
-    frame = &T->frames[--T->frame_count];
+    frame = --T->ci;
 
     T->base = frame->base;
     T->top = frame->slots;
@@ -207,7 +214,7 @@ static void f_call(TeaState* T, void* ud)
 
 void teaD_call(TeaState* T, TeaValue func, int arg_count)
 {
-    if(++T->nccalls >= 200)
+    if(++T->nccalls >= TEA_MAX_CCALLS)
     {
         puts("C stack overflow");
         teaD_throw(T, TEA_RUNTIME_ERROR);
@@ -221,6 +228,19 @@ void teaD_call(TeaState* T, TeaValue func, int arg_count)
     T->nccalls--;
 }
 
+static void restore_stack_limit(TeaState* T)
+{
+    T->stack_last = T->stack + T->stack_size - 1;
+    if(T->ci_size > TEA_MAX_CALLS)
+    {
+        int inuse = (T->ci - T->base_ci);
+        if(inuse + 1 < TEA_MAX_CALLS)
+        {
+            realloc_ci(T, TEA_MAX_CALLS);
+        }
+    }
+}
+
 int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
 {
     int status;
@@ -231,8 +251,9 @@ int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
     if(status != 0)
     {
         T->top = T->base = T->stack;
-        T->frame_count = 0;
+        T->ci = T->base_ci;
         T->open_upvalues = NULL;
+        restore_stack_limit(T);
     }
     return status;
 }
@@ -284,8 +305,8 @@ static void f_compiler(TeaState* T, void* ud)
 
 int teaD_protected_compiler(TeaState* T, TeaObjectModule* module, const char* source)
 {
-    int status;
     struct PCompiler c;
+    int status;
     c.module = module;
     c.source = source;
     status = teaD_runprotected(T, f_compiler, &c);

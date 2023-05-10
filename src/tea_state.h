@@ -19,17 +19,19 @@ typedef struct
     uint8_t* ip;
     TeaValue* slots;
     TeaValue* base;
-} TeaCallFrame;
+} TeaCallInfo;
 
 typedef struct TeaState
 {
+    TeaValue* stack_last;
     TeaValue* stack;
     TeaValue* top;
     TeaValue* base;
-    int stack_capacity;
-    TeaCallFrame* frames;
-    int frame_capacity;
-    int frame_count;
+    int stack_size;
+    TeaCallInfo* ci;
+    TeaCallInfo* end_ci;
+    TeaCallInfo* base_ci;
+    int ci_size;
     TeaObjectUpvalue* open_upvalues;
     TeaCompiler* compiler;
     TeaTable modules;

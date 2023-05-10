@@ -25,10 +25,8 @@ void teaV_runtime_error(TeaState* T, const char* format, ...)
     va_end(args);
     fputs("\n", stderr);
 
-    for(int i = T->frame_count - 1; i >= 0; i--)
+    for(TeaCallInfo* frame = T->ci - 1; frame >= T->base_ci; frame--)
     {
-        TeaCallFrame* frame = &T->frames[i];
-
         // Skip stack trace for C functions
         if(frame->closure == NULL) continue;
 
@@ -714,7 +712,7 @@ static void repeat(TeaState* T)
 
 void teaV_run(TeaState* T)
 {
-    register TeaCallFrame* frame;
+    register TeaCallInfo* frame;
     register TeaChunk* current_chunk;
 
     register uint8_t* ip;
@@ -732,7 +730,7 @@ void teaV_run(TeaState* T)
 #define READ_FRAME() \
     do \
     { \
-        frame = &T->frames[T->frame_count - 1]; \
+        frame = T->ci - 1; \
         current_chunk = &frame->closure->function->chunk; \
 	    ip = frame->ip; \
 	    slots = frame->slots; \
@@ -1653,15 +1651,15 @@ void teaV_run(TeaState* T)
                 TeaValue result = POP();
                 close_upvalues(T, slots);
                 STORE_FRAME;
-                T->frame_count--;
-                if(T->frame_count == 0)
+                T->ci--;
+                if(T->ci == T->base_ci)
                 {
                     DROP(1);
                     //PUSH(result);
                     return;
                 }
 
-                TeaCallFrame* cframe = &T->frames[T->frame_count - 1];
+                TeaCallInfo* cframe = T->ci - 1;
                 if(cframe->closure == NULL)
                 {
                     PUSH(result);

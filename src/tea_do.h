@@ -6,6 +6,16 @@
 
 #include "tea_state.h"
 
+#define teaD_checkstack(T, n) \
+    if((char*)T->stack_last - (char*)L->top <= (n)*(int)sizeof(TeaValue)) \
+        teaD_growstack(L, n);
+
+#define savestack(T, p)		((char*)(p) - (char*)T->stack)
+#define restorestack(T, n)	((TeaValue*)((char*)T->stack + (n)))
+
+#define saveci(T, p)		((char*)(p) - (char*)T->base_ci)
+#define restoreci(T, n)		((TeaCallInfo*)((char*)T->base_ci + (n)))
+
 typedef void (*TeaPFunction)(TeaState* T, void* ud);
 
 void teaD_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start);

@@ -10,6 +10,9 @@
 
 #define TEA_NAN_TAGGING
 
+#define TEA_MAX_CALLS   1000
+#define TEA_MAX_CCALLS  200
+
 #ifdef TEA_DEBUG
 #include <assert.h>
 #define tea_assert(c)   assert(c)

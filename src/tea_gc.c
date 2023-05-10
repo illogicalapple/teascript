@@ -270,15 +270,15 @@ static void free_object(TeaState* T, TeaObject* object)
 
 static void mark_roots(TeaState* T)
 {
-    for(TeaValue* slot = T->stack; slot < T->top; slot++) 
+    for(TeaValue* slot = T->stack; slot < T->top; slot++)
     {
         teaC_mark_value(T, *slot);
     }
     
-    for(int i = 0; i < T->frame_count; i++)
+    for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
     {
-        teaC_mark_object(T, (TeaObject*)T->frames[i].closure);
-        teaC_mark_object(T, (TeaObject*)T->frames[i].native);
+        teaC_mark_object(T, (TeaObject*)ci->closure);
+        teaC_mark_object(T, (TeaObject*)ci->native);
     }
 
     for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
