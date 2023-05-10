@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "tea_config.h"
+#include "tea_conf.h"
 
 #define TEA_REPOSITORY "https://github.com/RevengerWizard/teascript"
 
