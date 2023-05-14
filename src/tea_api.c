@@ -146,7 +146,8 @@ TEA_API int tea_type(TeaState* T, int index)
 
 TEA_API const char* tea_type_name(TeaState* T, int index)
 {
-    return teaL_type(index2value(T, index));
+    TeaValue* slot = index2stack(T, index);
+    return (slot == NULL) ? "no value" : teaL_type(*slot);
 }
 
 TEA_API double tea_get_number(TeaState* T, int index)
