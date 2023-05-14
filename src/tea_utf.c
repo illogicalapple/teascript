@@ -190,14 +190,14 @@ TeaObjectString* teaU_from_code_point(TeaState* T, int value)
 	return teaO_copy_string(T, bytes, length);
 }
 
-TeaObjectString* teaU_from_range(TeaState* T, TeaObjectString* source, int start, uint32_t count) 
+TeaObjectString* teaU_from_range(TeaState* T, TeaObjectString* source, int start, uint32_t count, int step) 
 {
 	uint8_t* from = (uint8_t*)source->chars;
 	int length = 0;
 
 	for(uint32_t i = 0; i < count; i++) 
     {
-		length += teaU_decode_bytes(from[start + i]);
+		length += teaU_decode_bytes(from[start + i * step]);
 	}
 
 	char bytes[length];
@@ -206,7 +206,7 @@ TeaObjectString* teaU_from_range(TeaState* T, TeaObjectString* source, int start
 
 	for(uint32_t i = 0; i < count; i++) 
     {
-		int index = start + i;
+		int index = start + i * step;
 		int code_point = teaU_decode(from + index, source->length - index);
 
 		if(code_point != -1) 

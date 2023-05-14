@@ -16,7 +16,7 @@ int teaU_encode(int value, uint8_t* bytes);
 
 TeaObjectString* teaU_code_point_at(TeaState* T, TeaObjectString* string, uint32_t index);
 TeaObjectString* teaU_from_code_point(TeaState* T, int value);
-TeaObjectString* teaU_from_range(TeaState* T, TeaObjectString* source, int start, uint32_t count);
+TeaObjectString* teaU_from_range(TeaState* T, TeaObjectString* source, int start, uint32_t count, int step);
 
 int teaU_char_offset(char* str, int index);
 
