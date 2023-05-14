@@ -137,9 +137,6 @@ int main(int argc, const char* argv[])
         exit(64);
     }
 
-    printf(":: top = %d\n", tea_get_top(T));
-    printf(":: type = %s\n", tea_type_name(T, -1));
-
     tea_close(T);
 
     return EXIT_SUCCESS;

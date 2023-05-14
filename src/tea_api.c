@@ -19,11 +19,15 @@ static TeaValue index2value(TeaState* T, int index)
     }
 }
 
-static TeaValue* index2addr(TeaState* T, int index)
+static TeaValue* index2stack(TeaState* T, int index)
 {
     if(index >= 0)
     {
-        return T->base + index;
+        TeaValue* value = T->base + index;
+        if(value >= T->top)
+            return NULL;
+        else
+            return value;
     }
     else
     {
@@ -67,6 +71,8 @@ TEA_API void tea_set_top(TeaState* T, int index)
 {
     if(index >= 0)
     {
+        while(T->top < T->base + index)
+            teaV_push(T, NULL_VAL);
         T->top = T->base + index;
     }
     else
@@ -77,7 +83,7 @@ TEA_API void tea_set_top(TeaState* T, int index)
 
 TEA_API void tea_remove(TeaState* T, int index)
 {
-    TeaValue* p = index2addr(T, index);
+    TeaValue* p = index2stack(T, index);
     while(++p < T->top)
         *(p - 1) = *p;
     T->top--;
@@ -85,7 +91,7 @@ TEA_API void tea_remove(TeaState* T, int index)
 
 TEA_API void tea_insert(TeaState* T, int index)
 {
-    TeaValue* p = index2addr(T, index);
+    TeaValue* p = index2stack(T, index);
     for(TeaValue* q = T->top; q > p; q--)
         *q = *(q - 1);
     *p = *(T->top);
@@ -93,19 +99,23 @@ TEA_API void tea_insert(TeaState* T, int index)
 
 TEA_API void tea_replace(TeaState* T, int index)
 {
-    TeaValue* v = index2addr(T, index);
+    TeaValue* v = index2stack(T, index);
     *v = *(T->top - 1);
     T->top--;
 }
 
 TEA_API void tea_push_value(TeaState* T, int index)
 {
-    teaV_push(T, index2value(T, index));
+    TeaValue value = index2value(T, index);
+    teaV_push(T, value);
 }
 
 TEA_API int tea_type(TeaState* T, int index)
 {
-    TeaValue value = index2value(T, index);
+    TeaValue* slot = index2stack(T, index);
+    if(slot == NULL)
+        return TEA_TYPE_NONE;
+    TeaValue value = *slot;
 
     if(IS_NULL(value)) return TEA_TYPE_NULL;
     if(IS_BOOL(value)) return TEA_TYPE_BOOL;
@@ -131,7 +141,7 @@ TEA_API int tea_type(TeaState* T, int index)
             default:;
         }
     }
-    return TEA_TYPE_UNKNOWN;
+    return TEA_TYPE_NONE;
 }
 
 TEA_API const char* tea_type_name(TeaState* T, int index)
@@ -224,7 +234,7 @@ TEA_API void tea_push_number(TeaState* T, double n)
 
 TEA_API const char* tea_push_lstring(TeaState* T, const char* s, int len)
 {
-    TeaObjectString* string = (len == 0) ? teaO_copy_string(T, "", 0) : teaO_copy_string(T, s, len);
+    TeaObjectString* string = (len == 0) ? teaO_new_literal(T, "") : teaO_copy_string(T, s, len);
     teaV_push(T, OBJECT_VAL(string));
 
     return string->chars;
@@ -457,7 +467,7 @@ TEA_API int tea_get_global(TeaState* T, const char* name)
     tea_push_string(T, name);
     TeaValue _;
     int b = teaT_get(&T->globals, AS_STRING(teaV_peek(T, 0)), &_);
-    tea_pop(T, 2);
+    tea_pop(T, 1);
     if(b)
     {
         teaV_push(T, _);
@@ -527,6 +537,12 @@ TEA_API void tea_check_range(TeaState* T, int index, double* start, double* end,
     tea_get_range(T, index, start, end, step);
 }
 
+TEA_API void tea_check_any(TeaState* T, int index)
+{
+    if(tea_type(T, index) == TEA_TYPE_NONE)
+        tea_error(T, "Expected value, got none");
+}
+
 TEA_API double tea_check_number(TeaState* T, int index)
 {
     TeaValue value = index2value(T, index);
@@ -545,6 +561,18 @@ TEA_API const char* tea_check_lstring(TeaState* T, int index, int* len)
         expected(T, "string", index);
     }
     return tea_get_lstring(T, index, len);
+}
+
+TEA_API const char* tea_opt_lstring(TeaState* T, int index, const char* def, int* len)
+{
+    if(tea_is_nonenull(T, index))
+    {
+        if(len)
+            *len = (def ? strlen(def) : 0);
+        return def;
+    }
+    else
+        return tea_check_lstring(T, index, len);
 }
 
 TEA_API void tea_call(TeaState* T, int n)

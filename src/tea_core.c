@@ -87,13 +87,15 @@ static void open(TeaState* T)
     if(count == 2)
         type = tea_check_string(T, 1);
 
-    TeaObjectFile* file = teaO_new_file(T, teaO_new_string(T, path), teaO_new_string(T, type));
-    file->file = fopen(file->path->chars, file->type->chars);
-
-    if(file->file == NULL) 
+    FILE* fp = fopen(path, type);
+    if(fp == NULL) 
     {
         tea_error(T, "Unable to open file '%s'", path);
     }
+
+    TeaObjectFile* file = teaO_new_file(T, teaO_new_string(T, path), teaO_new_string(T, type));
+    file->file = fp;
+
     teaV_push(T, OBJECT_VAL(file));
 }
 
@@ -261,6 +263,6 @@ void tea_open_core(TeaState* T)
         tea_push_cfunction(T, core[i]);
         tea_call(T, 0);
         tea_pop(T, 1);
-        printf(":: CORE TOP = %d\n", tea_get_top(T));
+        tea_assert(tea_get_top(T) == 0);
     }
 }

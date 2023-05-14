@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "tea_state.h"
-#include "tea_compiler.h"
 #include "tea_core.h"
 #include "tea_vm.h"
 #include "tea_util.h"
@@ -66,8 +65,8 @@ TEA_API TeaState* tea_open()
     teaT_init(&T->globals);
     teaT_init(&T->constants);
     teaT_init(&T->strings);
-    T->constructor_string = teaO_copy_string(T, "constructor", 11);
-    T->repl_string = teaO_copy_string(T, "_", 1);
+    T->constructor_string = teaO_new_literal(T, "constructor");
+    T->repl_string = teaO_new_literal(T, "_");
     T->repl = false;
     tea_open_core(T);
     return T;
@@ -75,6 +74,9 @@ TEA_API TeaState* tea_open()
 
 TEA_API void tea_close(TeaState* T)
 {
+    printf(":: top = %d\n", tea_get_top(T));
+    printf(":: type = %s\n", tea_type_name(T, 0));
+
     T->constructor_string = NULL;
     T->repl_string = NULL;
     
@@ -123,16 +125,6 @@ TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, c
     module->path = teaZ_get_directory(T, (char*)module_name);
     teaV_pop(T, 1);
     
-    /*TeaObjectFunction* function = teaY_compile(T, module, source);
-    if(function == NULL)
-        return TEA_COMPILE_ERROR;
-
-    teaV_push(T, OBJECT_VAL(function));
-    TeaObjectClosure* closure = teaO_new_closure(T, function);
-    teaV_pop(T, 1);
-
-    teaV_push(T, OBJECT_VAL(closure));*/
-
     int status = teaD_protected_compiler(T, module, source);
     if(status != 0)
         return TEA_COMPILE_ERROR;

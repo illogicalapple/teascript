@@ -217,7 +217,9 @@ void teaO_map_add_all(TeaState* T, TeaObjectMap* from, TeaObjectMap* to);
 
 TeaObjectList* teaO_new_list(TeaState* T);
 
-TeaObjectString* teaO_new_string(TeaState* T, const char* name);
+#define teaO_new_literal(T, s) (teaO_copy_string(T, "" s, (sizeof(s)/sizeof(char))-1))
+#define teaO_new_string(T, s) (teaO_copy_string(T, s, strlen(s)))
+
 TeaObjectString* teaO_take_string(TeaState* T, char* chars, int length);
 TeaObjectString* teaO_copy_string(TeaState* T, const char* chars, int length);
 

@@ -14,7 +14,7 @@
 
 TeaObject* teaO_allocate(TeaState* T, size_t size, TeaObjectType type)
 {
-    TeaObject* object = (TeaObject*)teaM_reallocate(T, NULL, 0, size);
+    TeaObject* object = (TeaObject*)teaM_realloc(T, NULL, 0, size);
     object->type = type;
     object->is_marked = false;
 
@@ -180,11 +180,6 @@ static uint32_t hash_string(const char* key, int length)
         hash *= 16777619;
     }
     return hash;
-}
-
-TeaObjectString* teaO_new_string(TeaState* T, const char* name)
-{
-    return teaO_copy_string(T, name, strlen(name));
 }
 
 TeaObjectString* teaO_take_string(TeaState* T, char* chars, int length)
@@ -402,15 +397,15 @@ void teaO_map_add_all(TeaState* T, TeaObjectMap* from, TeaObjectMap* to)
 static TeaObjectString* function_tostring(TeaState* T, TeaObjectFunction* function)
 {
     if(function->name == NULL)
-        return teaO_copy_string(T, "<script>", 8);
+        return teaO_new_literal(T, "<script>");
 
-    return teaO_copy_string(T, "<function>", 10);
+    return teaO_new_literal(T, "<function>");
 }
 
 static TeaObjectString* list_tostring(TeaState* T, TeaObjectList* list)
 {
     if(list->items.count == 0)
-        return teaO_copy_string(T, "[]", 2);
+        return teaO_new_literal(T, "[]");
 
     int size = 50;
     
@@ -474,7 +469,7 @@ static TeaObjectString* list_tostring(TeaState* T, TeaObjectList* list)
 static TeaObjectString* map_tostring(TeaState* T, TeaObjectMap* map)
 {
     if(map->count == 0)
-        return teaO_copy_string(T, "{}", 2);
+        return teaO_new_literal(T, "{}");
         
     int count = 0;
     int size = 50;
@@ -630,18 +625,18 @@ TeaObjectString* teaO_tostring(TeaState* T, TeaValue value)
     switch(OBJECT_TYPE(value))
     {
         case OBJ_FILE:
-            return teaO_copy_string(T, "<file>", 6);
+            return teaO_new_literal(T, "<file>");
         case OBJ_BOUND_METHOD:
-            return teaO_copy_string(T, "<method>", 8);
+            return teaO_new_literal(T, "<method>");
         case OBJ_NATIVE:
         {
             switch(AS_NATIVE(value)->type)
             {
                 case NATIVE_PROPERTY:
-                    return teaO_copy_string(T, "<property>", 10);
+                    return teaO_new_literal(T, "<property>");
                 case NATIVE_FUNCTION: 
                 case NATIVE_METHOD: 
-                    return teaO_copy_string(T, "<function>", 10);
+                    return teaO_new_literal(T, "<function>");
             }
         }
         case OBJ_FUNCTION:
@@ -663,11 +658,11 @@ TeaObjectString* teaO_tostring(TeaState* T, TeaValue value)
         case OBJ_STRING:
             return AS_STRING(value);
         case OBJ_UPVALUE:
-            return teaO_copy_string(T, "<upvalue>", 9);
+            return teaO_new_literal(T, "<upvalue>");
         default:
             break;
     }
-    return teaO_copy_string(T, "unknown", 7);
+    return teaO_new_literal(T, "unknown");
 }
 
 static bool range_equals(TeaObjectRange* a, TeaObjectRange* b)
@@ -751,6 +746,8 @@ const char* teaO_type(TeaValue a)
 {
     switch(OBJECT_TYPE(a))
     {
+        case OBJ_UPVALUE:
+            return "upvalue";
         case OBJ_FILE:
             return "file";
         case OBJ_RANGE:

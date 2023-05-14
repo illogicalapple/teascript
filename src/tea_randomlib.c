@@ -63,7 +63,7 @@ static void random_shuffle(TeaState* T)
     // A small internal hack
     TeaObjectList* list = AS_LIST(T->base[0]);
 
-    if(list->items.count <= 1)
+    if(list->items.count < 2)
     {
         return;
     }

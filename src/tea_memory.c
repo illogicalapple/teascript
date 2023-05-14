@@ -10,12 +10,7 @@
 #include "tea_state.h"
 #include "tea_array.h"
 
-#ifdef TEA_DEBUG_LOG_GC
-#include <stdio.h>
-#include "tea_debug.h"
-#endif
-
-void* teaM_reallocate(TeaState* T, void* pointer, size_t old_size, size_t new_size)
+void* teaM_realloc(TeaState* T, void* pointer, size_t old_size, size_t new_size)
 {
     T->bytes_allocated += new_size - old_size;
 
@@ -47,18 +42,4 @@ void* teaM_reallocate(TeaState* T, void* pointer, size_t old_size, size_t new_si
         exit(1);
 
     return result;
-}
-
-// http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2Float
-int teaM_closest_power_of_two(int n)
-{
-	n--;
-	n |= n >> 1;
-	n |= n >> 2;
-	n |= n >> 4;
-	n |= n >> 8;
-	n |= n >> 16;
-	n++;
-
-	return n;
 }

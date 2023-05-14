@@ -47,7 +47,6 @@ static void os_getenv(TeaState* T)
             return;
         }
 
-        tea_push_string(T, s);
         return;
     }
 
@@ -70,7 +69,7 @@ static void os_setenv(TeaState* T)
         tea_error(T, "Expected string or null");
     }
 
-    const char* key = tea_check_string(T, 0);
+    const char* key = tea_get_string(T, 0);
     int ret;
     if(tea_is_null(T, 1))
     {

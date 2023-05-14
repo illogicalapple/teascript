@@ -4,7 +4,6 @@
 #include "tea_common.h"
 #include "tea_do.h"
 #include "tea_vm.h"
-#include "tea_debug.h"
 #include "tea_compiler.h"
 
 struct tea_longjmp
@@ -14,26 +13,16 @@ struct tea_longjmp
     volatile int status;
 };
 
-void teaD_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start)
-{
-    TeaCallInfo* frame = T->ci++;
-    frame->slots = start;
-    frame->base = start;
-    frame->closure = closure;
-    frame->native = NULL;
-    frame->ip = closure->function->chunk.code;
-}
-
 void realloc_ci(TeaState* T, int new_size)
 {
-    TeaCallInfo* oldci = T->base_ci;
-    T->base_ci = (TeaCallInfo*)teaM_reallocate(T, T->base_ci, sizeof(TeaCallInfo) * T->ci_size, sizeof(TeaCallInfo) * new_size);
+    TeaCallInfo* old_ci = T->base_ci;
+    T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
-    T->ci = T->base_ci + (T->ci - oldci);
+    T->ci = T->base_ci + (T->ci - old_ci);
     T->end_ci = T->base_ci + T->ci_size;
 }
 
-void teaD_ensure_callframe(TeaState* T)
+void teaD_grow_ci(TeaState* T)
 {
     if(T->ci + 1 > T->end_ci)
     {
@@ -45,32 +34,42 @@ void teaD_ensure_callframe(TeaState* T)
     }
 }
 
-void teaD_ensure_stack(TeaState* T, int needed)
+static void correct_stack(TeaState* T, TeaValue* old_stack)
 {
-    if(T->stack_size >= needed) return;
+    for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
+    {
+        ci->slots = T->stack + (ci->slots - old_stack);
+    }
 
-	int capacity = (int)teaM_closest_power_of_two((int)needed);
+    for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
+    {
+        upvalue->location = T->stack + (upvalue->location - old_stack);
+    }
+
+    T->top = T->stack + (T->top - old_stack);
+    T->base = T->stack + (T->base - old_stack);
+}
+
+static void realloc_stack(TeaState* T, int new_size)
+{
 	TeaValue* old_stack = T->stack;
 
-	T->stack = (TeaValue*)teaM_reallocate(T, T->stack, sizeof(TeaValue) * T->stack_size, sizeof(TeaValue) * capacity);
-	T->stack_size = capacity;
+	T->stack = TEA_GROW_ARRAY(T, TeaValue, T->stack, T->stack_size, new_size);
+	T->stack_size = new_size;
+    T->stack_last = T->stack + new_size - 1;
 
 	if(T->stack != old_stack)
     {
-        for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
-        {
-			ci->slots = T->stack + (ci->slots - old_stack);
-			ci->base = T->stack + (ci->base - old_stack);
-		}
-
-		for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
-        {
-			upvalue->location = T->stack + (upvalue->location - old_stack);
-		}
-
-		T->top = T->stack + (T->top - old_stack);
-		T->base = T->stack + (T->base - old_stack);
+        correct_stack(T, old_stack);
 	}
+}
+
+void teaD_grow_stack(TeaState* T, int n)
+{
+	if(n <= T->stack_size)
+        realloc_stack(T, 2 * T->stack_size);
+    else
+        realloc_stack(T, T->stack_size + n);
 }
 
 static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
@@ -122,25 +121,26 @@ static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
         teaV_push(T, OBJECT_VAL(list));
     }
 
-    teaD_ensure_callframe(T);
+    teaD_grow_ci(T);
+    teaD_checkstack(T, closure->function->max_slots);
 
-    int stack_size = (int)(T->top - T->stack);
-    int needed = stack_size + closure->function->max_slots;
-	teaD_ensure_stack(T, needed);
-
-    teaD_append_callframe(T, closure, T->top - arg_count - 1);
+    TeaCallInfo* frame = T->ci++;
+    frame->slots = T->top - arg_count - 1;
+    frame->closure = closure;
+    frame->native = NULL;
+    frame->ip = closure->function->chunk.code;
 }
 
 static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 {
-    teaD_ensure_callframe(T);
+    teaD_grow_ci(T);
+    teaD_checkstack(T, TEA_MIN_SLOTS);
 
     TeaCallInfo* frame = T->ci++;
     frame->closure = NULL;
     frame->ip = NULL;
     frame->native = native;
     frame->slots = T->top - arg_count - 1;
-    frame->base = T->base;
 
     if(native->type > 0) 
         T->base = T->top - arg_count - 1;
@@ -153,13 +153,13 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 
     frame = --T->ci;
 
-    T->base = frame->base;
+    T->base = frame->slots;
     T->top = frame->slots;
 
     teaV_push(T, res);
 }
 
-void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
+void teaD_precall(TeaState* T, TeaValue callee, uint8_t arg_count)
 {
     if(IS_OBJECT(callee))
     {
@@ -169,7 +169,7 @@ void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
             {
                 TeaObjectBoundMethod* bound = AS_BOUND_METHOD(callee);
                 T->top[-arg_count - 1] = bound->receiver;
-                teaD_call_value(T, bound->method, arg_count);
+                teaD_precall(T, bound->method, arg_count);
                 return;
             }
             case OBJ_CLASS:
@@ -178,7 +178,7 @@ void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count)
                 T->top[-arg_count - 1] = OBJECT_VAL(teaO_new_instance(T, klass));
                 if(!IS_NULL(klass->constructor)) 
                 {
-                    teaD_call_value(T, klass->constructor, arg_count);
+                    teaD_precall(T, klass->constructor, arg_count);
                 }
                 else if(arg_count != 0)
                 {
@@ -219,7 +219,7 @@ void teaD_call(TeaState* T, TeaValue func, int arg_count)
         puts("C stack overflow");
         teaD_throw(T, TEA_RUNTIME_ERROR);
     }
-    teaD_call_value(T, func, arg_count);
+    teaD_precall(T, func, arg_count);
 
     if(IS_CLOSURE(func))
     {

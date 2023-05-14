@@ -18,7 +18,6 @@ typedef struct
     TeaObjectNative* native;
     uint8_t* ip;
     TeaValue* slots;
-    TeaValue* base;
 } TeaCallInfo;
 
 typedef struct TeaState
@@ -60,8 +59,8 @@ typedef struct TeaState
     int nccalls;
 } TeaState;
 
-#define tea_exit_jump(T) (longjmp(T->error_jump->buf, 1))
-#define tea_set_jump(T) (setjmp(T->error_jump->buf))
+#define TEA_THROW(T) (longjmp(T->error_jump->buf, 1))
+#define TEA_TRY(T) (setjmp(T->error_jump->buf))
 
 TeaObjectClass* teaE_get_class(TeaState* T, TeaValue value);
 

@@ -55,7 +55,7 @@ typedef enum TeaInterpretResult
 
 typedef enum
 {
-    TEA_TYPE_UNKNOWN = -1,
+    TEA_TYPE_NONE = -1,
     TEA_TYPE_NULL,
     TEA_TYPE_NUMBER,
     TEA_TYPE_BOOL,
@@ -134,10 +134,12 @@ TEA_API void tea_set_funcs(TeaState* T, const TeaReg* reg);
 
 TEA_API int tea_check_type(TeaState* T, int index, int type);
 
+TEA_API void tea_check_any(TeaState* T, int index);
 TEA_API double tea_check_number(TeaState* T, int index);
 TEA_API int tea_check_bool(TeaState* T, int index);
 TEA_API void tea_check_range(TeaState* T, int index, double* start, double* end, double* step);
 TEA_API const char* tea_check_lstring(TeaState* T, int index, int* len);
+TEA_API const char* tea_opt_lstring(TeaState* T, int index, const char* def, int* len);
 
 TEA_API void tea_collect_garbage(TeaState* T);
 TEA_API TeaInterpretResult tea_interpret(TeaState* T, const char* module_name, const char* source);
@@ -152,7 +154,9 @@ TEA_API void tea_error(TeaState* T, const char* fmt, ...);
 #define tea_to_string(T, index) (tea_to_lstring(T, (index), NULL))
 
 #define tea_push_literal(T, s)	\
-	tea_push_lstring(T, "" s, (sizeof(s) / sizeof(char))-1)
+	tea_push_lstring(T, "" s, (sizeof(s)/sizeof(char))-1)
+
+#define tea_opt_string(T, index, def) (tea_opt_lstring(T, (index), (def), NULL))
 
 #define tea_check_string(T, index) (tea_check_lstring(T, (index), NULL))
 #define tea_check_list(T, index) (tea_check_type(T, index, TEA_TYPE_LIST))
@@ -167,11 +171,16 @@ TEA_API void tea_error(TeaState* T, const char* fmt, ...);
 #define tea_register(T, n, f) (tea_push_cfunction(T, (f)), tea_set_global(T, (n)))
 
 #define tea_write_string(s, l)   (fwrite((s), sizeof(char), (l), stdout))
-#define tea_write_lstring(s)   (fwrite((s), sizeof(char), strlen((s)), stdout))
-#define tea_write_line()    (tea_write_string("\n", 1), fflush(stdout))
-#define tea_write_version() (tea_write_lstring("teascript v" TEA_VERSION), tea_write_line())
+#define tea_write_literal(s) \
+    (fwrite((s), sizeof(char), (sizeof(s)/sizeof(char))-1, stdout))
 
-#define tea_is_unknown(T, n) (tea_type(T, (n)) == TEA_TYPE_UNKNOWN)
+#define tea_write_line()    (tea_write_string("\n", 1), fflush(stdout))
+#define tea_write_version() (tea_write_literal("teascript v" TEA_VERSION), tea_write_line())
+#define tea_write_error(s) \
+    (fprintf(stderr, (s)), fflush(stderr))
+
+#define tea_is_nonenull(T, n) (tea_type(T, (n)) <= 0)
+#define tea_is_none(T, n) (tea_type(T, (n)) == TEA_TYPE_NONE)
 #define tea_is_null(T, n) (tea_type(T, (n)) == TEA_TYPE_NULL)
 #define tea_is_number(T, n) (tea_type(T, (n)) == TEA_TYPE_NUMBER)
 #define tea_is_bool(T, n) (tea_type(T, (n)) == TEA_TYPE_BOOL)

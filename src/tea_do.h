@@ -7,8 +7,8 @@
 #include "tea_state.h"
 
 #define teaD_checkstack(T, n) \
-    if((char*)T->stack_last - (char*)L->top <= (n)*(int)sizeof(TeaValue)) \
-        teaD_growstack(L, n);
+    if((char*)T->stack_last - (char*)T->top <= (n)*(int)sizeof(TeaValue)) \
+        teaD_grow_stack(T, n);
 
 #define savestack(T, p)		((char*)(p) - (char*)T->stack)
 #define restorestack(T, n)	((TeaValue*)((char*)T->stack + (n)))
@@ -18,12 +18,11 @@
 
 typedef void (*TeaPFunction)(TeaState* T, void* ud);
 
-void teaD_append_callframe(TeaState* T, TeaObjectClosure* closure, TeaValue* start);
-void teaD_ensure_callframe(TeaState* T);
+void teaD_grow_ci(TeaState* T);
 
-void teaD_ensure_stack(TeaState* T, int needed);
+void teaD_grow_stack(TeaState* T, int needed);
 
-void teaD_call_value(TeaState* T, TeaValue callee, uint8_t arg_count);
+void teaD_precall(TeaState* T, TeaValue callee, uint8_t arg_count);
 void teaD_call(TeaState* T, TeaValue func, int arg_count);
 int teaD_pcall(TeaState* T, TeaValue func, int arg_count);
 

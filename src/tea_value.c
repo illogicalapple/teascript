@@ -128,11 +128,11 @@ TeaObjectString* teaL_tostring(TeaState* T, TeaValue value)
 #ifdef TEA_NAN_TAGGING
     if(IS_BOOL(value))
     {
-        return AS_BOOL(value) ? teaO_copy_string(T, "true", 4) : teaO_copy_string(T, "false", 5);
+        return AS_BOOL(value) ? teaO_new_literal(T, "true") : teaO_new_literal(T, "false");
     }
     else if(IS_NULL(value))
     {
-        return teaO_copy_string(T, "null", 4);
+        return teaO_new_literal(T, "null");
     }
     else if(IS_NUMBER(value))
     {
@@ -146,9 +146,9 @@ TeaObjectString* teaL_tostring(TeaState* T, TeaValue value)
     switch(value.type)
     {
         case VAL_BOOL:
-            return AS_BOOL(value) ? teaO_copy_string(T, "true", 4) : teaO_copy_string(T, "false", 5);
+            return AS_BOOL(value) ? teaO_new_literal(T, "true") : teaO_new_literal(T, "false");
         case VAL_NULL:
-            return teaO_copy_string(T, "null", 4);
+            return teaO_new_literal(T, "null");
         case VAL_NUMBER:
             return teaL_number_tostring(T, AS_NUMBER(value));
         case VAL_OBJECT:
@@ -157,21 +157,21 @@ TeaObjectString* teaL_tostring(TeaState* T, TeaValue value)
             break;
     }
 #endif
-    return teaO_copy_string(T, "unknown", 7);
+    return teaO_new_literal(T, "unknown");
 }
 
 TeaObjectString* teaL_number_tostring(TeaState* T, double number)
 {
-    if(isnan(number)) return teaO_copy_string(T, "nan", 3);
+    if(isnan(number)) return teaO_new_literal(T, "nan");
     if(isinf(number))
     {
         if(number > 0.0)
         {
-            return teaO_copy_string(T, "infinity", 8);
+            return teaO_new_literal(T, "infinity");
         }
         else
         {
-            return teaO_copy_string(T, "-infinity", 9);
+            return teaO_new_literal(T, "-infinity");
         }
     }
 

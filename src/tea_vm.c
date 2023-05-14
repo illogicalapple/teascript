@@ -54,7 +54,7 @@ static void invoke_from_class(TeaState* T, TeaObjectClass* klass, TeaObjectStrin
         teaV_runtime_error(T, "Undefined method '%s'", name->chars);
     }
 
-    teaD_call_value(T, method, arg_count);
+    teaD_precall(T, method, arg_count);
 }
 
 static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int arg_count)
@@ -73,7 +73,7 @@ static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int ar
             TeaValue value;
             if(teaT_get(&module->values, name, &value)) 
             {
-                teaD_call_value(T, value, arg_count);
+                teaD_precall(T, value, arg_count);
                 return;
             }
 
@@ -87,13 +87,13 @@ static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int ar
             if(teaT_get(&instance->fields, name, &value))
             {
                 T->top[-arg_count - 1] = value;
-                teaD_call_value(T, value, arg_count);
+                teaD_precall(T, value, arg_count);
                 return;
             }
 
             if(teaT_get(&instance->klass->methods, name, &value)) 
             {
-                teaD_call_value(T, value, arg_count);
+                teaD_precall(T, value, arg_count);
                 return;
             }
 
@@ -110,7 +110,7 @@ static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int ar
                     teaV_runtime_error(T, "'%s' is not static. Only static methods can be invoked directly from a class", name->chars);
                 }
 
-                teaD_call_value(T, method, arg_count);
+                teaD_precall(T, method, arg_count);
                 return;
             }
 
@@ -124,7 +124,7 @@ static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int ar
                 TeaValue value;
                 if(teaT_get(&type->methods, name, &value)) 
                 {
-                    teaD_call_value(T, value, arg_count);
+                    teaD_precall(T, value, arg_count);
                     return;
                 }
 
@@ -134,7 +134,7 @@ static void invoke(TeaState* T, TeaValue receiver, TeaObjectString* name, int ar
     }
 }
 
-static void bind_method(TeaState* T, TeaObjectClass* klass, TeaObjectString* name)
+static bool bind_method(TeaState* T, TeaObjectClass* klass, TeaObjectString* name)
 {
     TeaValue method;
     if(!teaT_get(&klass->methods, name, &method))
@@ -145,6 +145,7 @@ static void bind_method(TeaState* T, TeaObjectClass* klass, TeaObjectString* nam
     TeaObjectBoundMethod* bound = teaO_new_bound_method(T, teaV_peek(T, 0), method);
     teaV_pop(T, 1);
     teaV_push(T, OBJECT_VAL(bound));
+    return true;
 }
 
 static void in_(TeaState* T, TeaValue object, TeaValue value)
@@ -448,7 +449,8 @@ static void get_property(TeaState* T, TeaValue receiver, TeaObjectString* name, 
                 return;
             }
 
-            bind_method(T, instance->klass, name);
+            if(bind_method(T, instance->klass, name))
+                return;
 
             TeaObjectClass* klass = instance->klass;
             while(klass != NULL) 
@@ -540,7 +542,7 @@ static void get_property(TeaState* T, TeaValue receiver, TeaObjectString* name, 
                 {
                     if(IS_NATIVE_PROPERTY(value))
                     {
-                        teaD_call_value(T, value, 0);
+                        teaD_precall(T, value, 0);
                     }
                     else
                     {
@@ -652,7 +654,7 @@ static void define_method(TeaState* T, TeaObjectString* name)
     teaV_pop(T, 1);
 }
 
-static void teaV_concat(TeaState* T)
+static void concatenate(TeaState* T)
 {
     TeaObjectString* b = AS_STRING(teaV_peek(T, 0));
     TeaObjectString* a = AS_STRING(teaV_peek(T, 1));
@@ -686,7 +688,7 @@ static void repeat(TeaState* T)
 
     if(n <= 0)
     {
-        TeaObjectString* s = teaO_copy_string(T, "", 0);
+        TeaObjectString* s = teaO_new_literal(T, "");
         teaV_pop(T, 2);
         teaV_push(T, OBJECT_VAL(s));
         return;
@@ -758,19 +760,19 @@ void teaV_run(TeaState* T)
 #define INVOKE_METHOD(a, b, name, arg_count) \
     do \
     { \
-        TeaObjectString* method_name = teaO_copy_string(T, name, strlen(name)); \
+        TeaObjectString* method_name = teaO_new_string(T, name); \
         TeaValue method; \
         if(((IS_INSTANCE(a) && IS_INSTANCE(b)) || IS_INSTANCE(a)) && teaT_get(&AS_INSTANCE(a)->klass->methods, method_name, &method)) \
         { \
             STORE_FRAME; \
-            teaD_call_value(T, method, arg_count); \
+            teaD_precall(T, method, arg_count); \
             READ_FRAME(); \
             DISPATCH(); \
         } \
         else if(IS_INSTANCE(b) && teaT_get(&AS_INSTANCE(b)->klass->methods, method_name, &method)) \
         { \
             STORE_FRAME; \
-            teaD_call_value(T, method, arg_count); \
+            teaD_precall(T, method, arg_count); \
             READ_FRAME(); \
             DISPATCH(); \
         } \
@@ -1358,7 +1360,7 @@ void teaV_run(TeaState* T)
             {
                 if(IS_STRING(PEEK(0)) && IS_STRING(PEEK(1)))
                 {
-                    teaV_concat(T);
+                    concatenate(T);
                 }
                 else if(IS_LIST(PEEK(0)) && IS_LIST(PEEK(1)))
                 {
@@ -1600,7 +1602,7 @@ void teaV_run(TeaState* T)
             {
                 int arg_count = READ_BYTE();
                 STORE_FRAME;
-                teaD_call_value(T, PEEK(arg_count), arg_count);
+                teaD_precall(T, PEEK(arg_count), arg_count);
                 READ_FRAME();
                 DISPATCH();
             }
@@ -1658,18 +1660,22 @@ void teaV_run(TeaState* T)
                 T->ci--;
                 if(T->ci == T->base_ci)
                 {
-                    DROP(1);
-                    //PUSH(result);
+                    // weird?
+                    T->base = slots;
+                    T->top = slots;
+                    PUSH(result);
                     return;
                 }
 
                 TeaCallInfo* cframe = T->ci - 1;
                 if(cframe->closure == NULL)
                 {
+                    T->base = cframe->slots;
+                    T->top = slots;
                     PUSH(result);
-                    //printf("OP_RETURN : %s\n", teaL_tostring(T, T->top[-1])->chars);
                     return;
                 }
+                T->base = slots;
                 T->top = slots;
                 PUSH(result);
                 READ_FRAME();
@@ -1757,19 +1763,14 @@ void teaV_run(TeaState* T)
                 module->path = teaZ_dirname(T, path, strlen(path));
                 T->last_module = module;
 
-                //TeaObjectFunction* function = teaY_compile(T, module, source);
                 int status = teaD_protected_compiler(T, module, source);
                 TEA_FREE_ARRAY(T, char, source, strlen(source) + 1);
 
                 if(status != 0)
                     teaD_throw(T, TEA_COMPILE_ERROR);
 
-                //if(function == NULL) return TEA_COMPILE_ERROR;
-                //TeaObjectClosure* closure = teaO_new_closure(T, function);
-                //PUSH(OBJECT_VAL(closure));
-
                 STORE_FRAME;
-                teaD_call_value(T, T->top[-1], 0);
+                teaD_precall(T, T->top[-1], 0);
                 READ_FRAME();
 
                 DISPATCH();
@@ -1824,7 +1825,7 @@ void teaV_run(TeaState* T)
                 if(IS_CLOSURE(module)) 
                 {
                     STORE_FRAME;
-                    teaD_call_value(T, module, 0);
+                    teaD_precall(T, module, 0);
                     READ_FRAME();
 
                     teaT_get(&T->modules, file_name, &module);
@@ -1892,15 +1893,6 @@ TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, c
     module->path = teaZ_get_directory(T, (char*)module_name);
     teaV_pop(T, 1);
     
-    /*TeaObjectFunction* function = teaY_compile(T, module, source);
-    if(function == NULL)
-        return TEA_COMPILE_ERROR;
-
-    teaV_push(T, OBJECT_VAL(function));
-    TeaObjectClosure* closure = teaO_new_closure(T, function);
-    teaV_pop(T, 1);
-
-    teaV_push(T, OBJECT_VAL(closure));*/
     int status = teaD_protected_compiler(T, module, source);
     if(status != 0)
         return TEA_COMPILE_ERROR;

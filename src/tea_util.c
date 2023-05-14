@@ -26,6 +26,7 @@ char* teaZ_read_file(TeaState* T, const char* path)
     size_t bytesRead = fread(buffer, sizeof(char), file_size, file);
     if(bytesRead < file_size) 
     {
+        TEA_FREE_ARRAY(T, char, buffer, file_size + 1);
         fprintf(stderr, "Could not read file \"%s\"\n", path);
         exit(74);
     }
@@ -40,7 +41,7 @@ TeaObjectString* teaZ_dirname(TeaState* T, char* path, int len)
 {
     if(!len) 
     {
-        return teaO_copy_string(T, ".", 1);
+        return teaO_new_literal(T, ".");
     }
 
     char* sep = path + len;
@@ -71,7 +72,7 @@ TeaObjectString* teaZ_dirname(TeaState* T, char* path, int len)
 
     if(sep == path && !IS_DIR_SEPARATOR(*sep)) 
     {
-        return teaO_copy_string(T, ".", 1);
+        return teaO_new_literal(T, ".");
     }
 
     len = sep - path + 1;

@@ -8,6 +8,7 @@
 #include "tea_vm.h"
 #include "tea_memory.h"
 #include "tea_core.h"
+#include "tea_debug.h"
 
 static void list_len(TeaState* T)
 {
@@ -264,72 +265,111 @@ static void list_fill(TeaState* T)
     tea_pop(T, 1);
 }
 
-static int partition(TeaState* T, int start, int end) 
+static void set2(TeaState* T, int i, int j)
 {
-    int pivot_index = (int)floor(start + end) / 2;
+    tea_set_item(T, 0, i);
+    tea_set_item(T, 0, j);
+}
 
-    tea_get_item(T, 0, pivot_index);
-    double pivot = tea_get_number(T, 1);
-    tea_pop(T, 1);
-
-    int i = start - 1;
-    int j = end + 1;
-
-    double item;
-    while(true)
+static bool sort_comp(TeaState* T, int a, int b)
+{
+    if(!tea_is_null(T, 1))
     {
-        do
-        {
-            i = i + 1;
-            tea_get_item(T, 0, i);
-            item = tea_get_number(T, 1);
-            tea_pop(T, 1);
-        } 
-        while(item < pivot);
-
-        do 
-        {
-            j = j - 1;
-            tea_get_item(T, 0, j);
-            item = tea_get_number(T, 1);
-            tea_pop(T, 1);
-        } 
-        while(item > pivot);
-
-        if(i >= j) 
-        {
-            return j;
-        }
-
-        // Swap arr[i] with arr[j]
-        tea_get_item(T, 0, i);
-        tea_get_item(T, 0, j);
-        tea_set_item(T, 0, i);
-        tea_set_item(T, 0, j);
+        bool res;
+        tea_push_value(T, 1);
+        tea_push_value(T, a - 1); /* -1 to compensate function */
+        tea_push_value(T, b - 2); /* -2 to compensate function and 'a' */
+        tea_call(T, 2);
+        res = tea_check_bool(T, -1);
+        tea_pop(T, 1);
+        return res;
+    }
+    else
+    {
+        double n1 = tea_check_number(T, a);
+        double n2 = tea_check_number(T, b);
+        return n1 < n2;
     }
 }
 
-// Implementation of Quick Sort using the Hoare
-// Partition scheme
-// Best Case O(n log n)
-// Worst Case O(n^2) (If the list is already sorted) 
-static void quicksort(TeaState* T, int start, int end) 
+static void auxsort(TeaState* T, int l, int u)
 {
-    while(start < end) 
+    while(l < u)
     {
-        int part = partition(T, start, end);
-
-        // Recurse for the smaller halve
-        if(part - start < end - part) 
+        int i, j;
+        /* sort elements a[l], a[(l+u)/2] and a[u] */
+        tea_get_item(T, 0, l);
+        tea_get_item(T, 0, u);
+        if(sort_comp(T, -1, -2)) /* a[u] < a[l]? */
+            set2(T, l, u);        /* swap a[l] - a[u] */
+        else
+            tea_pop(T, 2);
+        if (u - l == 1)
+            break; /* only 2 elements */
+        i = (l + u) / 2;
+        tea_get_item(T, 0, i);
+        tea_get_item(T, 0, l);
+        if(sort_comp(T, -2, -1)) /* a[i]<a[l]? */
+            set2(T, i, l);
+        else
         {
-            quicksort(T, start, part);
-            start = start + 1;
-        } 
-        else 
-        {
-            quicksort(T, part + 1, end);
-            end = end - 1;
+            tea_pop(T, 1); /* remove a[l] */
+            tea_get_item(T, 0, u);
+            if(sort_comp(T, -1, -2)) /* a[u]<a[i]? */
+                set2(T, i, u);
+            else
+                tea_pop(T, 2);
         }
+        if(u - l == 2)
+            break;            /* only 3 elements */
+        tea_get_item(T, 0, i); /* Pivot */
+        tea_push_value(T, -1);
+        tea_get_item(T, 0, u - 1);
+        set2(T, i, u - 1);
+        /* a[l] <= P == a[u-1] <= a[u], only need to sort from l+1 to u-2 */
+        i = l;
+        j = u - 1;
+        while(true)
+        { /* invariant: a[l..i] <= P <= a[j..u] */
+            /* repeat ++i until a[i] >= P */
+            while(tea_get_item(T, 0, ++i), sort_comp(T, -1, -2))
+            {
+                if(i > u)
+                    tea_error(T, "invalid order function for sorting");
+                tea_pop(T, 1); /* remove a[i] */
+            }
+            /* repeat --j until a[j] <= P */
+            while(tea_get_item(T, 0, --j), sort_comp(T, -3, -1))
+            {
+                if(j < l)
+                    tea_error(T, "invalid order function for sorting");
+                tea_pop(T, 1); /* remove a[j] */
+            }
+            if(j < i)
+            {
+                tea_pop(T, 3); /* pop pivot, a[i], a[j] */
+                break;
+            }
+            set2(T, i, j);
+        }
+        tea_get_item(T, 0, u - 1);
+        tea_get_item(T, 0, i);
+        set2(T, u - 1, i); /* swap pivot (a[u-1]) with a[i] */
+        /* a[l..i-1] <= a[i] == P <= a[i+1..u] */
+        /* adjust so that smaller half is in [j..i] and larger one in [l..u] */
+        if(i - l < u - i)
+        {
+            j = l;
+            i = i - 1;
+            l = i + 2;
+        }
+        else
+        {
+            j = i + 1;
+            i = u;
+            u = j - 2;
+        }
+        auxsort(T, j, i); /* call recursively the smaller one */
     }
 }
 
@@ -340,18 +380,11 @@ static void list_sort(TeaState* T)
 
     int len = tea_len(T, 0);
 
-    // Check if all the list elements are indeed numbers
-    for(int i = 0; i < len; i++) 
-    {
-        tea_get_item(T, 0, i);
-        if(!tea_is_number(T, 1))
-        {
-            tea_error(T, "sort() takes lists with numbers (index %d was not a number)", i);
-        }
-        tea_pop(T, 1);
-    }
-
-    quicksort(T, 0, len - 1);
+    if(!tea_is_nonenull(T, 1))
+        tea_check_function(T, 1);
+    tea_set_top(T, 2);
+    auxsort(T, 0, len - 1);
+    tea_pop(T, 1);
 }
 
 static void list_index(TeaState* T)
@@ -383,7 +416,7 @@ static void list_join(TeaState* T)
     int len = tea_len(T, 0);
     if(len == 0)
     {
-        tea_push_lstring(T, "", 0);
+        tea_push_literal(T, "");
         return;
     }
 
@@ -493,11 +526,6 @@ static void list_filter(TeaState* T)
     tea_push_value(T, 2);
 }
 
-/*static void list_reduce(TeaState* T) 
-{
-    
-}*/
-
 static void list_foreach(TeaState* T) 
 {
     int count = tea_get_top(T);
@@ -583,7 +611,6 @@ static const TeaClass list_class[] = {
     { "copy", "method", list_copy },
     { "map", "method", list_map },
     { "filter", "method", list_filter },
-    //{ "reduce", "method", list_reduce },
     { "foreach", "method", list_foreach },
     { "iterate", "method", list_iterate },
     { "iteratorvalue", "method", list_iteratorvalue },

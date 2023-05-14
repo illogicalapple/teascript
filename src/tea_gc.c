@@ -8,6 +8,11 @@
 #include "tea_gc.h"
 #include "tea_compiler.h"
 
+#ifdef TEA_DEBUG_LOG_GC
+#include <stdio.h>
+#include "tea_debug.h"
+#endif
+
 void teaC_mark_object(TeaState* T, TeaObject* object)
 {
     if(object == NULL)
@@ -160,7 +165,7 @@ static void free_object(TeaState* T, TeaObject* object)
         case OBJ_FILE:
         {
             TeaObjectFile* file = (TeaObjectFile*)object;
-            if(file->is_open == true)
+            if((file->is_open == true) && file->file != NULL)
             {
                 fclose(file->file);
             }
