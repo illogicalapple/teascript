@@ -728,7 +728,7 @@ void teaV_run(TeaState* T)
 #define PUSH(value) (teaV_push(T, value))
 #define POP() (teaV_pop(T, 1))
 #define PEEK(distance) (teaV_peek(T, distance))
-#define DROP(amount) (teaV_pop(T, amount))
+#define DROP(amount) (T->top -= (amount))
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 
@@ -1881,21 +1881,3 @@ void teaV_run(TeaState* T)
 #undef BINARY_OP
 #undef BINARY_OP_FUNCTION
 #undef RUNTIME_ERROR
-
-TeaInterpretResult teaV_interpret_module(TeaState* T, const char* module_name, const char* source)
-{
-    TeaObjectString* name = teaO_new_string(T, module_name);
-    teaV_push(T, OBJECT_VAL(name));
-    TeaObjectModule* module = teaO_new_module(T, name);
-    teaV_pop(T, 1);
-
-    teaV_push(T, OBJECT_VAL(module));
-    module->path = teaZ_get_directory(T, (char*)module_name);
-    teaV_pop(T, 1);
-    
-    int status = teaD_protected_compiler(T, module, source);
-    if(status != 0)
-        return TEA_COMPILE_ERROR;
-
-    teaD_call(T, T->top[-1], 0);
-}
