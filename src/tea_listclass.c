@@ -8,7 +8,6 @@
 #include "tea_vm.h"
 #include "tea_memory.h"
 #include "tea_core.h"
-#include "tea_debug.h"
 
 static void list_len(TeaState* T)
 {
@@ -128,7 +127,7 @@ static void list_insert(TeaState* T)
     tea_ensure_min_args(T, count, 3);
 
     TeaObjectList* list = AS_LIST(T->base[0]);
-    TeaValue insert_value = T->top[-2];
+    TeaValue insert_value = T->base[1];
     int index = tea_check_number(T, 2);
 
     if(index < 0 || index > list->items.count) 
@@ -475,6 +474,34 @@ static void list_copy(TeaState* T)
     }
 }
 
+static void list_find(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+    
+    tea_check_list(T, 0);
+    tea_check_function(T, 1);
+
+    int len = tea_len(T, 0);
+
+    for(int i = 0; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_get_item(T, 0, i);
+        tea_call(T, 1);
+
+        bool found = tea_check_bool(T, -1);
+        tea_pop(T, 1);
+
+        if(found) 
+        {
+            tea_get_item(T, 0, i);
+            return;
+        }
+    }
+    tea_push_null(T);
+}
+
 static void list_map(TeaState* T) 
 {
     int count = tea_get_top(T);
@@ -524,6 +551,33 @@ static void list_filter(TeaState* T)
         }
     }
     tea_push_value(T, 2);
+}
+
+static void list_reduce(TeaState* T) 
+{
+    int count = tea_get_top(T);
+    tea_ensure_min_args(T, count, 2);
+
+    tea_check_list(T, 0);
+    tea_check_function(T, 1);
+
+    int len = tea_len(T, 0);
+    if(len == 0)
+    {
+        tea_pop(T, 1);
+        return;
+    }
+
+    int i = 0;
+    tea_get_item(T, 0, i++);    // pivot item
+    for(; i < len; i++) 
+    {
+        tea_push_value(T, 1);
+        tea_push_value(T, -2);      // push pivot
+        tea_get_item(T, 0, i);
+        tea_call(T, 2);
+        tea_replace(T, -2);     // replace pivot with newer item
+    }
 }
 
 static void list_foreach(TeaState* T) 
@@ -609,8 +663,10 @@ static const TeaClass list_class[] = {
     { "index", "method", list_index },
     { "join", "method", list_join },
     { "copy", "method", list_copy },
+    { "find", "method", list_find },
     { "map", "method", list_map },
     { "filter", "method", list_filter },
+    { "reduce", "method", list_reduce },
     { "foreach", "method", list_foreach },
     { "iterate", "method", list_iterate },
     { "iteratorvalue", "method", list_iteratorvalue },
