@@ -31,7 +31,7 @@ static void init_stack(TeaState* T)
     T->base_ci = TEA_ALLOCATE(T, TeaCallInfo, 8);
     T->ci_size = 8;
     T->ci = T->base_ci;
-    T->end_ci = T->base_ci + T->ci_size;
+    T->end_ci = T->base_ci + T->ci_size - 1;
     T->nccalls = 0;
     T->open_upvalues = NULL;
 }

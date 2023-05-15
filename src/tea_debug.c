@@ -168,7 +168,7 @@ static int jump_instruction(const char* name, int sign, TeaChunk* chunk, int off
     return offset + 3;
 }
 
-int teaG_dump_stack(TeaState* T)
+void teaG_dump_stack(TeaState* T)
 {
     printf("          ");
     for(TeaValue* slot = T->stack; slot < T->top; slot++)

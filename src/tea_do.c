@@ -19,12 +19,12 @@ void realloc_ci(TeaState* T, int new_size)
     T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
     T->ci = T->base_ci + (T->ci - old_ci);
-    T->end_ci = T->base_ci + T->ci_size;
+    T->end_ci = T->base_ci + T->ci_size - 1;
 }
 
 void teaD_grow_ci(TeaState* T)
 {
-    if(T->ci + 1 > T->end_ci)
+    if(T->ci + 1 >= T->end_ci)
     {
         realloc_ci(T, T->ci_size * 2);
     }
@@ -36,7 +36,7 @@ void teaD_grow_ci(TeaState* T)
 
 static void correct_stack(TeaState* T, TeaValue* old_stack)
 {
-    for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
+    for(TeaCallInfo* ci = T->base_ci; ci < T->ci; ci++)
     {
         ci->slots = T->stack + (ci->slots - old_stack);
     }
@@ -137,10 +137,10 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
     teaD_checkstack(T, TEA_MIN_SLOTS);
 
     TeaCallInfo* frame = T->ci++;
-    frame->closure = NULL;
-    frame->ip = NULL;
-    frame->native = native;
     frame->slots = T->top - arg_count - 1;
+    frame->closure = NULL;
+    frame->native = native;
+    frame->ip = NULL;
 
     if(native->type > 0) 
         T->base = T->top - arg_count - 1;

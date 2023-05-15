@@ -1658,12 +1658,10 @@ void teaV_run(TeaState* T)
                 close_upvalues(T, slots);
                 STORE_FRAME;
                 T->ci--;
-                if(T->ci == T->base_ci)
+                if(frame == T->base_ci)
                 {
-                    // weird?
                     T->base = slots;
                     T->top = slots;
-                    PUSH(result);
                     return;
                 }
 

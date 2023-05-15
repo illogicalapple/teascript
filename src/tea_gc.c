@@ -254,7 +254,7 @@ static void mark_roots(TeaState* T)
         teaC_mark_value(T, *slot);
     }
     
-    for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
+    for(TeaCallInfo* ci = T->base_ci; ci < T->ci; ci++)
     {
         teaC_mark_object(T, (TeaObject*)ci->closure);
         teaC_mark_object(T, (TeaObject*)ci->native);
