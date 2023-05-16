@@ -207,8 +207,6 @@ int teaG_dump_instruction(TeaState* T, TeaChunk* chunk, int offset)
             return simple_instruction("OP_POP", offset);
         case OP_POP_REPL:
             return simple_instruction("OP_POP_REPL", offset);
-        case OP_DUP:
-            return simple_instruction("OP_DUP", offset);
         case OP_GET_PROPERTY_NO_POP:
             return constant_instruction("OP_GET_PROPERTY_NO_POP", chunk, offset);
         case OP_SET_CLASS_VAR:

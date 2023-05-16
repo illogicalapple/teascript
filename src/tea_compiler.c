@@ -1998,7 +1998,6 @@ static int get_arg_count(uint8_t* code, const TeaValueArray constants, int ip)
         case OP_INHERIT:
         case OP_POP:
         case OP_POP_REPL:
-        case OP_DUP:
         case OP_IS:
         case OP_IN:
         case OP_EQUAL:

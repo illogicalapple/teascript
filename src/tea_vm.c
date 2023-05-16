@@ -874,11 +874,6 @@ void teaV_run(TeaState* T)
                 PUSH(FALSE_VAL);
                 DISPATCH();
             }
-            CASE_CODE(DUP):
-            {
-                PUSH(PEEK(0));
-                DISPATCH();
-            }
             CASE_CODE(POP):
             {
                 DROP(1);
