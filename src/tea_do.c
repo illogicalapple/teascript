@@ -15,11 +15,13 @@ struct tea_longjmp
 
 void realloc_ci(TeaState* T, int new_size)
 {
+    //printf("CI REALLOC '%p' %d\n", T->base_ci, new_size);
     TeaCallInfo* old_ci = T->base_ci;
     T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
     T->ci = T->base_ci + (T->ci - old_ci);
     T->end_ci = T->base_ci + T->ci_size - 1;
+    //printf("CI END REALLOC '%p' %d\n", T->base_ci, new_size);
 }
 
 void teaD_grow_ci(TeaState* T)
@@ -38,7 +40,7 @@ static void correct_stack(TeaState* T, TeaValue* old_stack)
 {
     for(TeaCallInfo* ci = T->base_ci; ci < T->ci; ci++)
     {
-        ci->slots = (ci->slots - old_stack) + T->stack;
+        ci->base = (ci->base - old_stack) + T->stack;
     }
 
     for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
@@ -52,11 +54,13 @@ static void correct_stack(TeaState* T, TeaValue* old_stack)
 
 static void realloc_stack(TeaState* T, int new_size)
 {
+    //printf("STACK REALLOC '%p' %d\n", T->stack, new_size);
 	TeaValue* old_stack = T->stack;
 	T->stack = TEA_GROW_ARRAY(T, TeaValue, T->stack, T->stack_size, new_size);
 	T->stack_size = new_size;
     T->stack_last = T->stack + new_size - 1;
     correct_stack(T, old_stack);
+    //printf("STACK END REALLOC '%p' %d\n", T->stack, new_size);
 }
 
 void teaD_grow_stack(TeaState* T, int n)
@@ -120,7 +124,7 @@ static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
     teaD_checkstack(T, closure->function->max_slots);
 
     TeaCallInfo* frame = T->ci++;
-    frame->slots = T->top - arg_count - 1;
+    frame->base = T->top - arg_count - 1;
     frame->closure = closure;
     frame->native = NULL;
     frame->ip = closure->function->chunk.code;
@@ -132,7 +136,7 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
     teaD_checkstack(T, TEA_MIN_SLOTS);
 
     TeaCallInfo* frame = T->ci++;
-    frame->slots = T->top - arg_count - 1;
+    frame->base = T->top - arg_count - 1;
     frame->closure = NULL;
     frame->native = native;
     frame->ip = NULL;
@@ -148,8 +152,8 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 
     frame = --T->ci;
 
-    T->base = frame->slots;
-    T->top = frame->slots;
+    T->base = frame->base;
+    T->top = frame->base;
 
     teaV_push(T, res);
 }

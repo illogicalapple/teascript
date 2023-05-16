@@ -17,7 +17,7 @@ typedef struct
     TeaObjectClosure* closure;
     TeaObjectNative* native;
     uint8_t* ip;
-    TeaValue* slots;
+    TeaValue* base;
 } TeaCallInfo;
 
 typedef struct TeaState

@@ -722,7 +722,7 @@ void teaV_run(TeaState* T)
     register TeaChunk* current_chunk;
 
     register uint8_t* ip;
-    register TeaValue* slots;
+    register TeaValue* base;
     register TeaObjectUpvalue** upvalues;
 
 #define PUSH(value) (teaV_push(T, value))
@@ -739,7 +739,7 @@ void teaV_run(TeaState* T)
         frame = T->ci - 1; \
         current_chunk = &frame->closure->function->chunk; \
 	    ip = frame->ip; \
-	    slots = frame->slots; \
+	    base = frame->base; \
 	    upvalues = frame->closure == NULL ? NULL : frame->closure->upvalues; \
     } \
     while(false) \
@@ -861,13 +861,13 @@ void teaV_run(TeaState* T)
             }
             CASE_CODE(GET_LOCAL):
             {
-                PUSH(slots[READ_BYTE()]);
+                PUSH(base[READ_BYTE()]);
                 DISPATCH();
             }
             CASE_CODE(SET_LOCAL):
             {
                 uint8_t slot = READ_BYTE();
-                slots[slot] = PEEK(0);
+                base[slot] = PEEK(0);
                 DISPATCH();
             }
             CASE_CODE(GET_GLOBAL):
@@ -916,7 +916,7 @@ void teaV_run(TeaState* T)
             {
                 int arity = READ_BYTE();
                 int arity_optional = READ_BYTE();
-                int arg_count = T->top - slots - arity_optional - 1;
+                int arg_count = T->top - base - arity_optional - 1;
 
                 // Temp array while we shuffle the stack
                 // Cannot have more than 255 args to a function, so
@@ -1557,7 +1557,7 @@ void teaV_run(TeaState* T)
                     uint8_t index = READ_BYTE();
                     if(is_local)
                     {
-                        closure->upvalues[i] = capture_upvalue(T, frame->slots + index);
+                        closure->upvalues[i] = capture_upvalue(T, frame->base + index);
                     }
                     else
                     {
@@ -1575,26 +1575,26 @@ void teaV_run(TeaState* T)
             CASE_CODE(RETURN):
             {
                 TeaValue result = POP();
-                close_upvalues(T, slots);
+                close_upvalues(T, base);
                 STORE_FRAME;
                 T->ci--;
                 if(frame == T->base_ci)
                 {
-                    T->base = slots;
-                    T->top = slots;
+                    T->base = base;
+                    T->top = base;
                     return;
                 }
 
                 TeaCallInfo* cframe = T->ci - 1;
                 if(cframe->closure == NULL)
                 {
-                    T->base = cframe->slots;
-                    T->top = slots;
+                    T->base = cframe->base;
+                    T->top = base;
                     PUSH(result);
                     return;
                 }
-                T->base = slots;
-                T->top = slots;
+                T->base = base;
+                T->top = base;
                 PUSH(result);
                 READ_FRAME();
                 DISPATCH();
