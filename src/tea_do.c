@@ -38,30 +38,25 @@ static void correct_stack(TeaState* T, TeaValue* old_stack)
 {
     for(TeaCallInfo* ci = T->base_ci; ci < T->ci; ci++)
     {
-        ci->slots = T->stack + (ci->slots - old_stack);
+        ci->slots = (ci->slots - old_stack) + T->stack;
     }
 
     for(TeaObjectUpvalue* upvalue = T->open_upvalues; upvalue != NULL; upvalue = upvalue->next)
     {
-        upvalue->location = T->stack + (upvalue->location - old_stack);
+        upvalue->location = (upvalue->location - old_stack) + T->stack;
     }
 
-    T->top = T->stack + (T->top - old_stack);
-    T->base = T->stack + (T->base - old_stack);
+    T->top = (T->top - old_stack) + T->stack;
+    T->base = (T->base - old_stack) + T->stack;
 }
 
 static void realloc_stack(TeaState* T, int new_size)
 {
 	TeaValue* old_stack = T->stack;
-
 	T->stack = TEA_GROW_ARRAY(T, TeaValue, T->stack, T->stack_size, new_size);
 	T->stack_size = new_size;
     T->stack_last = T->stack + new_size - 1;
-
-	if(T->stack != old_stack)
-    {
-        correct_stack(T, old_stack);
-	}
+    correct_stack(T, old_stack);
 }
 
 void teaD_grow_stack(TeaState* T, int n)
