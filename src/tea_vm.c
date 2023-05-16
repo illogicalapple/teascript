@@ -757,32 +757,6 @@ void teaV_run(TeaState* T)
     } \
     while(false)
 
-#define INVOKE_METHOD(a, b, name, arg_count) \
-    do \
-    { \
-        TeaObjectString* method_name = teaO_new_string(T, name); \
-        TeaValue method; \
-        if(((IS_INSTANCE(a) && IS_INSTANCE(b)) || IS_INSTANCE(a)) && teaT_get(&AS_INSTANCE(a)->klass->methods, method_name, &method)) \
-        { \
-            STORE_FRAME; \
-            teaD_precall(T, method, arg_count); \
-            READ_FRAME(); \
-            DISPATCH(); \
-        } \
-        else if(IS_INSTANCE(b) && teaT_get(&AS_INSTANCE(b)->klass->methods, method_name, &method)) \
-        { \
-            STORE_FRAME; \
-            teaD_precall(T, method, arg_count); \
-            READ_FRAME(); \
-            DISPATCH(); \
-        } \
-        else \
-        { \
-            RUNTIME_ERROR("Undefined '%s' overload", name); \
-        } \
-    } \
-    while(false);
-
 #define BINARY_OP(value_type, op, op_string, type) \
     do \
     { \
@@ -791,15 +765,6 @@ void teaV_run(TeaState* T)
             type b = AS_NUMBER(POP()); \
             type a = AS_NUMBER(PEEK(0)); \
             T->top[-1] = value_type(a op b); \
-        } \
-        else if(IS_INSTANCE(PEEK(1)) || IS_INSTANCE(PEEK(0))) \
-        { \
-            TeaValue a = PEEK(1); \
-            TeaValue b = PEEK(0); \
-            DROP(1); \
-            PUSH(a); \
-            PUSH(b); \
-            INVOKE_METHOD(a, b, op_string, 2); \
         } \
         else \
         { \
@@ -1228,14 +1193,6 @@ void teaV_run(TeaState* T)
                 // Stack before: [list, index] and after: [index(list, index)]
                 TeaValue index = PEEK(0);
                 TeaValue list = PEEK(1);
-                if(IS_INSTANCE(list))
-                {
-                    DROP(1);
-                    PUSH(index);
-                    PUSH(NULL_VAL);             
-                    INVOKE_METHOD(list, NULL_VAL, "[]", 2);
-                    DISPATCH();
-                }
                 STORE_FRAME;
                 subscript(T, index, list);
                 DISPATCH();
@@ -1246,14 +1203,6 @@ void teaV_run(TeaState* T)
                 TeaValue item = PEEK(0);
                 TeaValue index = PEEK(1);
                 TeaValue list = PEEK(2);
-                if(IS_INSTANCE(list))
-                {
-                    DROP(2);
-                    PUSH(index);
-                    PUSH(item);
-                    INVOKE_METHOD(list, NULL_VAL, "[]", 2);
-                    DISPATCH();
-                }
                 STORE_FRAME;
                 subscript_store(T, item, index, list, true);
                 DISPATCH();
@@ -1315,17 +1264,6 @@ void teaV_run(TeaState* T)
             }
             CASE_CODE(EQUAL):
             {
-                if(IS_INSTANCE(PEEK(1)) || IS_INSTANCE(PEEK(0)))
-                {
-                    TeaValue a = PEEK(1);
-                    TeaValue b = PEEK(0);
-                    DROP(1);
-                    PUSH(a);
-                    PUSH(b);
-                    INVOKE_METHOD(a, b, "==", 2);
-                    DISPATCH();
-                }
-                
                 TeaValue b = POP();
                 TeaValue a = POP();
                 PUSH(BOOL_VAL(teaL_equal(a, b)));
@@ -1421,8 +1359,6 @@ void teaV_run(TeaState* T)
                     T->top[-1] = (NUMBER_VAL(fmod(AS_NUMBER(a), AS_NUMBER(b))));
                     DISPATCH();
                 }
-
-                INVOKE_METHOD(a, b, "%", 1);
                 DISPATCH();
             }
             CASE_CODE(POW):
@@ -1436,8 +1372,6 @@ void teaV_run(TeaState* T)
                     T->top[-1] = (NUMBER_VAL(pow(AS_NUMBER(a), AS_NUMBER(b))));
                     DISPATCH();
                 }
-
-                INVOKE_METHOD(a, b, "**", 1);
                 DISPATCH();
             }
             CASE_CODE(BAND):
@@ -1511,15 +1445,6 @@ void teaV_run(TeaState* T)
             }
             CASE_CODE(NEGATE):
             {
-                if(IS_INSTANCE(PEEK(0)))
-                {
-                    TeaValue a = PEEK(0);
-                    PUSH(a);
-                    PUSH(NULL_VAL);
-                    INVOKE_METHOD(a, NULL_VAL, "-", 2);
-                    DISPATCH();
-                }
-
                 if(!IS_NUMBER(PEEK(0)))
                 {
                     RUNTIME_ERROR("Operand must be a number");
