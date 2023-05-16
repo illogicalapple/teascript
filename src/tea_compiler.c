@@ -270,11 +270,8 @@ static TeaObjectFunction* end_compiler(TeaCompiler* compiler)
     TeaObjectFunction* function = compiler->function;
 
 #ifdef TEA_DEBUG_PRINT_CODE
-    if(!compiler->parser->had_error)
-    {
-        TeaState* T = compiler->parser->T;
-        teaG_dump_chunk(T, current_chunk(compiler), function->name != NULL ? function->name->chars : "<script>");
-    }
+    TeaState* T = compiler->parser->T;
+    teaG_dump_chunk(T, current_chunk(compiler), function->name != NULL ? function->name->chars : "<script>");
 #endif
 
     if(compiler->enclosing != NULL)

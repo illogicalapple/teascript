@@ -92,11 +92,11 @@ static void map_copy(TeaState* T)
 
     tea_new_map(T);
 
-    TeaObjectMap* new = AS_MAP(T->top[-2]);
+    TeaObjectMap* new = AS_MAP(T->base[1]);
     for(int i = 0; i < map->capacity; i++)
     {
         if(map->items[i].empty) continue;
-        teaO_map_set(T, new, OBJECT_VAL(map->items[i].key), map->items[i].value);
+        teaO_map_set(T, new, map->items[i].key, map->items[i].value);
     }
 }
 

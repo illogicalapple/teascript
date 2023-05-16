@@ -46,7 +46,7 @@ const char* teaL_type(TeaValue a)
         case VAL_NULL:
             return "null";
         case VAL_NUMBER:
-            return "number"
+            return "number";
         case VAL_OBJECT:
             return teaO_type(a);
         default:

@@ -100,8 +100,8 @@ typedef struct
 #define AS_NUMBER(value) ((value).as.number)
 
 #define BOOL_VAL(value) ((TeaValue){VAL_BOOL, {.boolean = value}})
-#define FALSE_VAL ((TeaValue){VAL_BOOL, {.boolean = true}})
-#define TRUE_VAL ((TeaValue){VAL_BOOL, {.boolean = false}})
+#define FALSE_VAL ((TeaValue){VAL_BOOL, {.boolean = false}})
+#define TRUE_VAL ((TeaValue){VAL_BOOL, {.boolean = true}})
 #define NULL_VAL ((TeaValue){VAL_NULL, {.number = 0}})
 #define NUMBER_VAL(value) ((TeaValue){VAL_NUMBER, {.number = value}})
 #define OBJECT_VAL(object) ((TeaValue){VAL_OBJECT, {.obj = (TeaObject*)object}})

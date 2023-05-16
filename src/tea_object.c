@@ -235,7 +235,11 @@ static inline uint32_t hash_bits(uint64_t hash)
 
 static inline uint32_t hash_number(double number)
 {
+#ifdef TEA_NAN_TAGGING
     return hash_bits(num_to_value(number));
+#else
+    return hash_bits(number);
+#endif
 }
 
 static uint32_t hash_object(TeaObject* object)
@@ -259,11 +263,10 @@ static uint32_t hash_value(TeaValue value)
 #else
     switch(value.type)
     {
-        case VAL_FALSE: return 0;
         case VAL_NULL:  return 1;
-        case VAL_NUM:   return hash_number(AS_NUMBER(value));
-        case VAL_TRUE:  return 2;
-        case VAL_OBJ:   return hash_object(AS_OBJECT(value));
+        case VAL_NUMBER:   return hash_number(AS_NUMBER(value));
+        case VAL_BOOL:  return 2;
+        case VAL_OBJECT:   return hash_object(AS_OBJECT(value));
         default:;
     }
     return 0;
@@ -293,7 +296,11 @@ static TeaMapItem* find_entry(TeaMapItem* items, int capacity, TeaValue key)
                     tombstone = item;
             }
         }
+#ifdef TEA_NAN_TAGGING
         else if(item->key == key)
+#else
+        else if(teaL_equal(item->key, key))
+#endif
         {
             // We found the key
             return item;
@@ -420,7 +427,11 @@ static TeaObjectString* list_tostring(TeaState* T, TeaObjectList* list)
         char* element;
         int element_size;
 
+#ifdef TEA_NAN_TAGGING
         if(value == OBJECT_VAL(list))
+#else
+        if(teaL_equal(value, OBJECT_VAL(list)))
+#endif
         {
             element = "[...]";
             element_size = 5;
@@ -491,7 +502,11 @@ static TeaObjectString* map_tostring(TeaState* T, TeaObjectMap* map)
         char* key;
         int key_size;
         
+#ifdef TEA_NAN_TAGGING
         if(item->key == OBJECT_VAL(map))
+#else
+        if(teaL_equal(item->key, OBJECT_VAL(map)))
+#endif
         {
             key = "{...}";
             key_size = 5;
@@ -535,7 +550,11 @@ static TeaObjectString* map_tostring(TeaState* T, TeaObjectMap* map)
         char* element;
         int element_size;
         
+#ifdef TEA_NAN_TAGGING
         if(item->value == OBJECT_VAL(map))
+#else
+        if(teaL_equal(item->value, OBJECT_VAL(map)))
+#endif
         {
             element = "{...}";
             element_size = 5;
