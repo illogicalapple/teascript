@@ -24,7 +24,7 @@
 
 #define TEA_BYTECODE_FORMAT 0
 
-#define TEA_MIN_SLOTS 40
+#define TEA_MIN_STACK 20
 
 typedef struct TeaState TeaState;
 

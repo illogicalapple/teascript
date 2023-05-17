@@ -12,6 +12,9 @@
 #include "tea_value.h"
 #include "tea_object.h"
 
+#define BASIC_CI_SIZE 8
+#define BASE_STACK_SIZE (TEA_MIN_STACK * 2)
+
 typedef struct
 {
     TeaObjectClosure* closure;

@@ -25,13 +25,13 @@ void teaV_runtime_error(TeaState* T, const char* format, ...)
     va_end(args);
     fputs("\n", stderr);
 
-    for(TeaCallInfo* frame = T->ci - 1; frame >= T->base_ci; frame--)
+    for(TeaCallInfo* ci = T->ci - 1; ci >= T->base_ci; ci--)
     {
         // Skip stack trace for C functions
-        if(frame->closure == NULL) continue;
+        if(ci->closure == NULL) continue;
 
-        TeaObjectFunction* function = frame->closure->function;
-        size_t instruction = frame->ip - function->chunk.code - 1;
+        TeaObjectFunction* function = ci->closure->function;
+        size_t instruction = ci->ip - function->chunk.code - 1;
         fprintf(stderr, "[line %d] in ", teaK_getline(&function->chunk, instruction));
         if(function->name == NULL)
         {
@@ -718,10 +718,10 @@ static void repeat(TeaState* T)
 
 void teaV_run(TeaState* T)
 {
-    register TeaCallInfo* frame;
-    register TeaChunk* current_chunk;
-
+    register TeaCallInfo* ci;
     register uint8_t* ip;
+
+    register TeaChunk* current_chunk;
     register TeaValue* base;
     register TeaObjectUpvalue** upvalues;
 
@@ -732,15 +732,15 @@ void teaV_run(TeaState* T)
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 
-#define STORE_FRAME (frame->ip = ip)
+#define STORE_FRAME (ci->ip = ip)
 #define READ_FRAME() \
     do \
     { \
-        frame = T->ci - 1; \
-        current_chunk = &frame->closure->function->chunk; \
-	    ip = frame->ip; \
-	    base = frame->base; \
-	    upvalues = frame->closure == NULL ? NULL : frame->closure->upvalues; \
+        ci = T->ci - 1; \
+        current_chunk = &ci->closure->function->chunk; \
+	    ip = ci->ip; \
+	    base = ci->base; \
+	    upvalues = ci->closure == NULL ? NULL : ci->closure->upvalues; \
     } \
     while(false) \
 
@@ -896,7 +896,7 @@ void teaV_run(TeaState* T)
             {
                 TeaObjectString* name = READ_STRING();
                 TeaValue value;
-                if(!teaT_get(&frame->closure->function->module->values, name, &value))
+                if(!teaT_get(&ci->closure->function->module->values, name, &value))
                 {
                     RUNTIME_ERROR("Undefined variable '%s'", name->chars);
                 }
@@ -906,9 +906,9 @@ void teaV_run(TeaState* T)
             CASE_CODE(SET_MODULE):
             {
                 TeaObjectString* name = READ_STRING();
-                if(teaT_set(T, &frame->closure->function->module->values, name, PEEK(0)))
+                if(teaT_set(T, &ci->closure->function->module->values, name, PEEK(0)))
                 {
-                    teaT_delete(&frame->closure->function->module->values, name);
+                    teaT_delete(&ci->closure->function->module->values, name);
                     RUNTIME_ERROR("Undefined variable '%s'", name->chars);
                 }
                 DISPATCH();
@@ -957,7 +957,7 @@ void teaV_run(TeaState* T)
             CASE_CODE(DEFINE_MODULE):
             {
                 TeaObjectString* name = READ_STRING();
-                teaT_set(T, &frame->closure->function->module->values, name, PEEK(0));
+                teaT_set(T, &ci->closure->function->module->values, name, PEEK(0));
                 DROP(1);
                 DISPATCH();
             }
@@ -1558,7 +1558,7 @@ void teaV_run(TeaState* T)
                     uint8_t index = READ_BYTE();
                     if(is_local)
                     {
-                        closure->upvalues[i] = capture_upvalue(T, frame->base + index);
+                        closure->upvalues[i] = capture_upvalue(T, ci->base + index);
                     }
                     else
                     {
@@ -1579,17 +1579,17 @@ void teaV_run(TeaState* T)
                 close_upvalues(T, base);
                 STORE_FRAME;
                 T->ci--;
-                if(frame == T->base_ci)
+                if(ci == T->base_ci)
                 {
                     T->base = base;
                     T->top = base;
                     return;
                 }
 
-                TeaCallInfo* cframe = T->ci - 1;
-                if(cframe->closure == NULL)
+                TeaCallInfo* last = T->ci - 1;
+                if(last->closure == NULL)
                 {
-                    T->base = cframe->base;
+                    T->base = last->base;
                     T->top = base;
                     PUSH(result);
                     return;
@@ -1665,7 +1665,7 @@ void teaV_run(TeaState* T)
                 }
 
                 char path[PATH_MAX];
-                if(!teaZ_resolve_path(frame->closure->function->module->path->chars, file_name->chars, path))
+                if(!teaZ_resolve_path(ci->closure->function->module->path->chars, file_name->chars, path))
                 {
                     RUNTIME_ERROR("Could not open file \"%s\"", file_name->chars);
                 }
@@ -1720,7 +1720,7 @@ void teaV_run(TeaState* T)
             }
             CASE_CODE(IMPORT_END):
             {
-                T->last_module = frame->closure->function->module;
+                T->last_module = ci->closure->function->module;
                 DISPATCH();
             }
             CASE_CODE(IMPORT_NATIVE):

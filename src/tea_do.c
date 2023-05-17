@@ -5,7 +5,6 @@
 #include "tea_do.h"
 #include "tea_vm.h"
 #include "tea_compiler.h"
-#include "tea_debug.h"
 
 struct tea_longjmp
 {
@@ -134,7 +133,7 @@ static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
 static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
 {
     teaD_grow_ci(T);
-    teaD_checkstack(T, TEA_MIN_SLOTS);
+    teaD_checkstack(T, BASE_STACK_SIZE);
 
     TeaCallInfo* ci = T->ci++;
     ci->closure = NULL;
@@ -250,6 +249,7 @@ int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
     status = teaD_runprotected(T, f_call, &c);
     if(status != 0)
     {
+        printf("%p, %p, %p\n", T->top, T->base, T->stack);
         T->top = T->base = T->stack;
         T->ci = T->base_ci;
         T->open_upvalues = NULL;

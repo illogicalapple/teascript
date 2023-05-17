@@ -24,12 +24,12 @@ static void free_stack(TeaState* T)
 
 static void init_stack(TeaState* T)
 {
-    T->stack = TEA_ALLOCATE(T, TeaValue, TEA_MIN_SLOTS);
-    T->stack_size = TEA_MIN_SLOTS;
+    T->stack = TEA_ALLOCATE(T, TeaValue, BASE_STACK_SIZE);
+    T->stack_size = BASE_STACK_SIZE;
     T->base = T->top = T->stack;
     T->stack_last = T->stack + T->stack_size - 1;
-    T->base_ci = TEA_ALLOCATE(T, TeaCallInfo, 8);
-    T->ci_size = 8;
+    T->base_ci = TEA_ALLOCATE(T, TeaCallInfo, BASIC_CI_SIZE);
+    T->ci_size = BASIC_CI_SIZE;
     T->ci = T->base_ci;
     T->end_ci = T->base_ci + T->ci_size - 1;
     T->nccalls = 0;
