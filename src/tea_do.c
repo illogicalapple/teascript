@@ -5,6 +5,7 @@
 #include "tea_do.h"
 #include "tea_vm.h"
 #include "tea_compiler.h"
+#include "tea_debug.h"
 
 struct tea_longjmp
 {
@@ -19,7 +20,7 @@ void realloc_ci(TeaState* T, int new_size)
     TeaCallInfo* old_ci = T->base_ci;
     T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
-    T->ci = T->base_ci + (T->ci - old_ci);
+    T->ci = (T->ci - old_ci) + T->base_ci;
     T->end_ci = T->base_ci + T->ci_size - 1;
     //printf("CI END REALLOC '%p' %d\n", T->base_ci, new_size);
 }
@@ -123,11 +124,11 @@ static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
     teaD_grow_ci(T);
     teaD_checkstack(T, closure->function->max_slots);
 
-    TeaCallInfo* frame = T->ci++;
-    frame->base = T->top - arg_count - 1;
-    frame->closure = closure;
-    frame->native = NULL;
-    frame->ip = closure->function->chunk.code;
+    TeaCallInfo* ci = T->ci++;
+    ci->closure = closure;
+    ci->native = NULL;
+    ci->ip = closure->function->chunk.code;
+    ci->base = T->top - arg_count - 1;
 }
 
 static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
@@ -135,11 +136,11 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
     teaD_grow_ci(T);
     teaD_checkstack(T, TEA_MIN_SLOTS);
 
-    TeaCallInfo* frame = T->ci++;
-    frame->base = T->top - arg_count - 1;
-    frame->closure = NULL;
-    frame->native = native;
-    frame->ip = NULL;
+    TeaCallInfo* ci = T->ci++;
+    ci->closure = NULL;
+    ci->native = native;
+    ci->ip = NULL;
+    ci->base = T->top - arg_count - 1;
 
     if(native->type > 0) 
         T->base = T->top - arg_count - 1;
@@ -150,10 +151,10 @@ static void callc(TeaState* T, TeaObjectNative* native, int arg_count)
     
     TeaValue res = T->top[-1];
 
-    frame = --T->ci;
+    ci = --T->ci;
 
-    T->base = frame->base;
-    T->top = frame->base;
+    T->base = ci->base;
+    T->top = ci->base;
 
     teaV_push(T, res);
 }

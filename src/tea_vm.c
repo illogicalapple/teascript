@@ -861,7 +861,8 @@ void teaV_run(TeaState* T)
             }
             CASE_CODE(GET_LOCAL):
             {
-                PUSH(base[READ_BYTE()]);
+                uint8_t slot = READ_BYTE();
+                PUSH(base[slot]);
                 DISPATCH();
             }
             CASE_CODE(SET_LOCAL):
