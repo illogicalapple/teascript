@@ -5,6 +5,7 @@
 #include "tea_do.h"
 #include "tea_vm.h"
 #include "tea_compiler.h"
+#include "tea_debug.h"
 
 struct tea_longjmp
 {
@@ -13,22 +14,20 @@ struct tea_longjmp
     volatile int status;
 };
 
-void realloc_ci(TeaState* T, int new_size)
+void teaD_realloc_ci(TeaState* T, int new_size)
 {
-    //printf("CI REALLOC '%p' %d\n", T->base_ci, new_size);
     TeaCallInfo* old_ci = T->base_ci;
     T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
     T->ci = (T->ci - old_ci) + T->base_ci;
     T->end_ci = T->base_ci + T->ci_size - 1;
-    //printf("CI END REALLOC '%p' %d\n", T->base_ci, new_size);
 }
 
 void teaD_grow_ci(TeaState* T)
 {
-    if(T->ci + 1 >= T->end_ci)
+    if(T->ci + 1 == T->end_ci)
     {
-        realloc_ci(T, T->ci_size * 2);
+        teaD_realloc_ci(T, T->ci_size * 2);
     }
     if(T->ci_size > TEA_MAX_CALLS)
     {
@@ -38,7 +37,9 @@ void teaD_grow_ci(TeaState* T)
 
 static void correct_stack(TeaState* T, TeaValue* old_stack)
 {
-    for(TeaCallInfo* ci = T->base_ci; ci < T->ci; ci++)
+    T->top = (T->top - old_stack) + T->stack;
+
+    for(TeaCallInfo* ci = T->base_ci; ci <= T->ci; ci++)
     {
         ci->base = (ci->base - old_stack) + T->stack;
     }
@@ -48,27 +49,24 @@ static void correct_stack(TeaState* T, TeaValue* old_stack)
         upvalue->location = (upvalue->location - old_stack) + T->stack;
     }
 
-    T->top = (T->top - old_stack) + T->stack;
     T->base = (T->base - old_stack) + T->stack;
 }
 
-static void realloc_stack(TeaState* T, int new_size)
+void teaD_realloc_stack(TeaState* T, int new_size)
 {
-    //printf("STACK REALLOC '%p' %d\n", T->stack, new_size);
 	TeaValue* old_stack = T->stack;
 	T->stack = TEA_GROW_ARRAY(T, TeaValue, T->stack, T->stack_size, new_size);
 	T->stack_size = new_size;
     T->stack_last = T->stack + new_size - 1;
     correct_stack(T, old_stack);
-    //printf("STACK END REALLOC '%p' %d\n", T->stack, new_size);
 }
 
 void teaD_grow_stack(TeaState* T, int n)
 {
 	if(n <= T->stack_size)
-        realloc_stack(T, 2 * T->stack_size);
+        teaD_realloc_stack(T, 2 * T->stack_size);
     else
-        realloc_stack(T, T->stack_size + n);
+        teaD_realloc_stack(T, T->stack_size + n);
 }
 
 static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)
@@ -235,7 +233,7 @@ static void restore_stack_limit(TeaState* T)
         int inuse = (T->ci - T->base_ci);
         if(inuse + 1 < TEA_MAX_CALLS)
         {
-            realloc_ci(T, TEA_MAX_CALLS);
+            teaD_realloc_ci(T, TEA_MAX_CALLS);
         }
     }
 }
@@ -249,7 +247,6 @@ int teaD_pcall(TeaState* T, TeaValue func, int arg_count)
     status = teaD_runprotected(T, f_call, &c);
     if(status != 0)
     {
-        printf("%p, %p, %p\n", T->top, T->base, T->stack);
         T->top = T->base = T->stack;
         T->ci = T->base_ci;
         T->open_upvalues = NULL;

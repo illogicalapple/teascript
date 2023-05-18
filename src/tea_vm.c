@@ -979,6 +979,7 @@ void teaV_run(TeaState* T)
                 TeaObjectString* name = READ_STRING();
                 STORE_FRAME;
                 get_property(T, receiver, name, true);
+                READ_FRAME();
                 DISPATCH();
             }
             CASE_CODE(GET_PROPERTY_NO_POP):
@@ -987,6 +988,7 @@ void teaV_run(TeaState* T)
                 TeaObjectString* name = READ_STRING();
                 STORE_FRAME;
                 get_property(T, receiver, name, false);
+                READ_FRAME();
                 DISPATCH();
             }
             CASE_CODE(SET_PROPERTY):
@@ -1558,7 +1560,7 @@ void teaV_run(TeaState* T)
                     uint8_t index = READ_BYTE();
                     if(is_local)
                     {
-                        closure->upvalues[i] = capture_upvalue(T, ci->base + index);
+                        closure->upvalues[i] = capture_upvalue(T, base + index);
                     }
                     else
                     {
@@ -1579,7 +1581,7 @@ void teaV_run(TeaState* T)
                 close_upvalues(T, base);
                 STORE_FRAME;
                 T->ci--;
-                if(ci == T->base_ci)
+                if(T->ci == T->base_ci)
                 {
                     T->base = base;
                     T->top = base;

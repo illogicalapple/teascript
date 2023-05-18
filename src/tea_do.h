@@ -18,8 +18,10 @@
 
 typedef void (*TeaPFunction)(TeaState* T, void* ud);
 
+void teaD_realloc_ci(TeaState* T, int new_size);
 void teaD_grow_ci(TeaState* T);
 
+void teaD_realloc_stack(TeaState* T, int new_size);
 void teaD_grow_stack(TeaState* T, int needed);
 
 void teaD_precall(TeaState* T, TeaValue callee, uint8_t arg_count);

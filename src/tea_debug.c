@@ -49,13 +49,19 @@ static void print_object(TeaValue object)
         case OBJ_RANGE:
             printf("<range>"); 
             break;
-        case OBJ_STRING: 
-            printf("%s", AS_CSTRING(object)); 
+        case OBJ_STRING:
+        {
+            TeaObjectString* string = AS_STRING(object);
+            if(string->length > 40)
+                printf("<string>");
+            else
+                printf("'%s'", AS_CSTRING(object)); 
             break;
-        case OBJ_UPVALUE: 
+        }
+        case OBJ_UPVALUE:
             printf("<upvalue>");
             break;
-        default: 
+        default:
             printf("<unknown>"); 
             break;
     }

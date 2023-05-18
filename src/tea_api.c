@@ -293,7 +293,6 @@ TEA_API void tea_push_cfunction(TeaState* T, TeaCFunction fn)
     teaV_push(T, OBJECT_VAL(native));
 }
 
-
 static void set_class(TeaState* T, const TeaClass* k)
 {
     for(; k->name != NULL; k++)
