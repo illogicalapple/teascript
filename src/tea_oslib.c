@@ -94,12 +94,8 @@ static void os_system(TeaState* T)
     tea_ensure_min_args(T, count, 1);
 
     const char* arg = tea_check_string(T, 0);
-    if(system(arg) == -1)
-    {
-        tea_error(T, "Unable to execute the command");
-    }
-
-    tea_push_null(T);
+    
+    tea_push_number(T, system(arg));
 }
 
 static inline const char* os_name()

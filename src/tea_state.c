@@ -74,9 +74,6 @@ TEA_API TeaState* tea_open()
 
 TEA_API void tea_close(TeaState* T)
 {
-    printf(":: top = %d\n", tea_get_top(T));
-    printf(":: type = %s\n", tea_type_name(T, 0));
-
     T->constructor_string = NULL;
     T->repl_string = NULL;
     
