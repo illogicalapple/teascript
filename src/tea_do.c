@@ -19,8 +19,12 @@ void teaD_realloc_ci(TeaState* T, int new_size)
     TeaCallInfo* old_ci = T->base_ci;
     T->base_ci = TEA_GROW_ARRAY(T, TeaCallInfo, T->base_ci, T->ci_size, new_size);
     T->ci_size = new_size;
-    T->ci = (T->ci - old_ci) + T->base_ci;
-    T->end_ci = T->base_ci + T->ci_size - 1;
+
+    if(old_ci != T->base_ci)
+    {
+        T->ci = (T->ci - old_ci) + T->base_ci;
+        T->end_ci = T->base_ci + T->ci_size - 1;
+    }
 }
 
 void teaD_grow_ci(TeaState* T)
@@ -58,15 +62,19 @@ void teaD_realloc_stack(TeaState* T, int new_size)
 	T->stack = TEA_GROW_ARRAY(T, TeaValue, T->stack, T->stack_size, new_size);
 	T->stack_size = new_size;
     T->stack_last = T->stack + new_size - 1;
-    correct_stack(T, old_stack);
+
+    if(old_stack != T->stack)
+    {
+        correct_stack(T, old_stack);
+    }
 }
 
-void teaD_grow_stack(TeaState* T, int n)
+void teaD_grow_stack(TeaState* T, int needed)
 {
-	if(n <= T->stack_size)
+	if(needed <= T->stack_size)
         teaD_realloc_stack(T, 2 * T->stack_size);
     else
-        teaD_realloc_stack(T, T->stack_size + n);
+        teaD_realloc_stack(T, T->stack_size + needed);
 }
 
 static void call(TeaState* T, TeaObjectClosure* closure, int arg_count)

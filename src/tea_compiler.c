@@ -2354,9 +2354,9 @@ static void switch_statement(TeaCompiler* compiler)
         while(match(compiler, TOKEN_CASE));
     }
 
+    emit_op(compiler, OP_POP); // expression
     if(match(compiler, TOKEN_DEFAULT))
     {
-        emit_op(compiler, OP_POP); // expression
         consume(compiler, TOKEN_COLON, "Expect ':' after default");
         statement(compiler);
     }
